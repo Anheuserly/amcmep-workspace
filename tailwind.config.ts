@@ -1,0 +1,65 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          DEFAULT: "#B34700",
+          50: "#fef3e8",
+          100: "#fce0c8",
+          200: "#f9c090",
+          300: "#f5a058",
+          400: "#d4701f",
+          500: "#B34700",
+          600: "#9a3d00",
+          700: "#7a3000",
+          800: "#5c2400",
+          900: "#3d1800",
+        },
+        brand: {
+          DEFAULT: "#1463F3",
+          50: "#EEF5FF",
+          100: "#D9E9FF",
+          200: "#B8D6FF",
+          300: "#86B9FF",
+          400: "#4F93FF",
+          500: "#1463F3",
+          600: "#0F4ED8",
+          700: "#123EAA",
+          800: "#153783",
+          900: "#172F66",
+        },
+        secondary: {
+          DEFAULT: "#FF7A00",
+          50: "#fff5e6",
+          100: "#ffe6c2",
+          200: "#ffd199",
+          300: "#ffb84d",
+          400: "#FF7A00",
+          500: "#e66e00",
+          600: "#cc6200",
+          700: "#a34f00",
+        },
+        surface: "#F8F4EF",
+        dark: "#1E1E1E",
+        success: "#22C55E",
+        warning: "#F59E0B",
+        danger: "#EF4444",
+        info: "#3B82F6",
+      },
+      fontFamily: {
+        sans: ["var(--font-poppins)", "Poppins", "system-ui", "sans-serif"],
+      },
+      borderRadius: {
+        "2xl": "14px",
+        "3xl": "18px",
+      },
+    },
+  },
+  plugins: [],
+};
