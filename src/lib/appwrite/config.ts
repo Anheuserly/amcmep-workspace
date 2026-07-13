@@ -15,6 +15,10 @@ export const appwriteConfig = {
       process.env.NEXT_PUBLIC_PROVIDERS_COLLECTION_ID ?? "680b308e002ef25fd54b",
     clients:
       process.env.NEXT_PUBLIC_CLIENTS_COLLECTION_ID ?? "680b30be0039f9a1d03e",
+    userData:
+      process.env.NEXT_PUBLIC_APPWRITE_USERDATA_COLLECTION_ID ??
+      process.env.NEXT_PUBLIC_CLIENTS_COLLECTION_ID ??
+      "680b30be0039f9a1d03e",
     serviceRequests:
       process.env.NEXT_PUBLIC_APPWRITE_SERVICE_REQUESTS_COLLECTION_ID ?? "685c3b1d002324dcb294",
     feed:

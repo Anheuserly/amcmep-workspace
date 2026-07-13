@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AMC MEP Workspace
 
-## Getting Started
+Business operations for AMC MEP 24x7 at `workspace.amcmep.in`.
 
-First, run the development server:
+## Product boundary
+
+- `app.amcmep.in` remains the social and customer-facing One App.
+- `workspace.amcmep.in` is available only to signed-in users with business access.
+- Authentication is handled by One App. Guest workspace visits are sent to One App login with a validated return URL.
+- Business access is resolved from the signed-in user's `userData.businessIds`, `userData.activeBusinessId`, and active `business_memberships` records.
+
+## Existing Appwrite resources
+
+The workspace intentionally reuses the existing schema. No duplicate tables are required for the initial release.
+
+- `userData` (`680b30be0039f9a1d03e`): account identity and linked business IDs.
+- `businesses`: business profile and owner information.
+- `business_memberships`: owner, administrator, partner, and staff access.
+- Existing request, assignment, AMC, notification, marketplace, and media resources provide operational records.
+
+## Local development
 
 ```bash
+cp .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Production build:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set the Cloudflare custom domain to `workspace.amcmep.in`. Add both `https://app.amcmep.in` and `https://workspace.amcmep.in` as Web platforms in the Appwrite project so browser sessions and API origin checks are accepted.

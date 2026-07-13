@@ -15,6 +15,8 @@ export interface UserProfile {
   activeRole: UserRole;
   referralCode?: string;
   preferredLanguage: string;
+  businessIds: string[];
+  activeBusinessId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -202,6 +204,10 @@ export interface WorkspaceMembership {
   userId: string;
   role: "owner" | "admin" | "partner" | "staff";
   permissions: string[];
+  memberName?: string;
+  memberPhone?: string;
+  status?: string;
+  onDuty?: boolean;
   joinedAt: string;
 }
 

@@ -51,6 +51,8 @@ function guestProfile(user?: Models.User<Models.Preferences> | null): UserProfil
     roles: ["guest"],
     activeRole: "guest",
     preferredLanguage: "en",
+    businessIds: [],
+    activeBusinessId: "",
     createdAt: user?.$createdAt ?? now,
     updatedAt: user?.$updatedAt ?? now,
   };
@@ -126,6 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           readString(clientProfile ?? {}, "referralCode") ||
           buildReferralCode(readString(clientProfile ?? {}, "customerId") || user.$id),
         preferredLanguage: readString(clientProfile ?? {}, "language") || user.prefs?.preferredLanguage || "en",
+        businessIds: readStringArray(clientProfile ?? {}, "businessIds"),
+        activeBusinessId: readString(clientProfile ?? {}, "activeBusinessId"),
         createdAt: readString(clientProfile ?? {}, "createdAt") || user.$createdAt,
         updatedAt: readString(clientProfile ?? {}, "updatedAt") || user.$updatedAt,
       };

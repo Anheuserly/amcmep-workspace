@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
-import { RoleGuard } from "./RoleGuard";
-import { GuestAuthPrompt } from "./GuestAuthPrompt";
 import type { UserRole } from "@/types";
 
 interface AppShellProps {
@@ -18,6 +16,13 @@ export function AppShell({ children, allowedRoles }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const showSidebar = activeRole !== "guest";
 
+  useEffect(() => {
+    if (!isLoading && activeRole === "guest") {
+      const returnTo = encodeURIComponent(window.location.href);
+      window.location.replace(`https://app.amcmep.in/login?returnTo=${returnTo}`);
+    }
+  }, [activeRole, isLoading]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -26,20 +31,28 @@ export function AppShell({ children, allowedRoles }: AppShellProps) {
     );
   }
 
+  if (activeRole === "guest") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-50">
+        <div className="text-center">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+          <p className="mt-4 text-sm font-semibold text-slate-600">Opening secure sign in...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <RoleGuard allowedRoles={allowedRoles}>
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-screen bg-slate-50">
         <Navbar onMenuClick={() => setSidebarOpen(true)} showMenu={showSidebar} />
         <div className="flex">
           {showSidebar && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
-          <main className={`min-h-[calc(100vh-4rem)] flex-1 pt-16 ${showSidebar ? "lg:ml-72" : ""}`}>
-            <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+          <main className={`min-h-screen flex-1 pt-[72px] ${showSidebar ? "lg:ml-64" : ""}`}>
+            <div className="mx-auto max-w-[1500px] p-4 sm:p-6">
               {children}
             </div>
           </main>
         </div>
-        <GuestAuthPrompt />
       </div>
-    </RoleGuard>
   );
 }

@@ -25,7 +25,7 @@ const COLLECTIONS = {
   feed: "68a361040001a07e0b58",
   feedComments: "feed_comments",
   marketplace: "marketplace_showcases",
-  clients: "680b30be0039f9a1d03e",
+  clients: appwriteConfig.collections.userData,
   administrators: "681c97fa003d57ddf43d",
   businesses: "businesses",
   businessMemberships: "business_memberships",
@@ -348,6 +348,10 @@ export function toWorkspaceMembership(doc: any): WorkspaceMembership {
     userId: readString(doc, "userId") || readString(doc, "memberUserId"),
     role: (readString(doc, "role") || "staff") as WorkspaceMembership["role"],
     permissions: readStringArray(doc, "permissions"),
+    memberName: readString(doc, "memberName"),
+    memberPhone: readString(doc, "memberPhone"),
+    status: readString(doc, "status") || "active",
+    onDuty: readBool(doc, "onDuty"),
     joinedAt: readString(doc, "joinedAt") || doc.$createdAt,
   };
 }
@@ -639,6 +643,45 @@ export async function fetchBusinesses({ ownerId, limit = 100 }: { ownerId?: stri
 export async function fetchBusinessMemberships(businessId: string) {
   const resp = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS.businessMemberships, [Query.equal("businessId", businessId), Query.equal("status", "active"), Query.limit(100)]);
   return resp.documents;
+}
+
+export async function fetchMembershipsForUser(userId: string) {
+  if (!userId.trim()) return [];
+  const resp = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS.businessMemberships, [
+    Query.equal("userId", userId.trim()),
+    Query.limit(100),
+  ]);
+  return resp.documents.filter((doc) => (readString(doc, "status") || "active") === "active");
+}
+
+export async function fetchBusinessesByIds(businessIds: string[]) {
+  const uniqueIds = Array.from(new Set(businessIds.map((id) => id.trim()).filter(Boolean)));
+  const rows = await Promise.all(
+    uniqueIds.map(async (businessId) => {
+      try {
+        return await appwrite.databases.getDocument(DB_ID, COLLECTIONS.businesses, businessId);
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return rows.filter((row): row is NonNullable<typeof row> => Boolean(row));
+}
+
+export async function fetchBusinessRequests(businessId: string, limit = 100) {
+  if (!businessId.trim()) return [];
+  const merged = new Map<string, any>();
+  for (const attribute of ["assignedBusinessId", "businessId"]) {
+    try {
+      const resp = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS.serviceRequests, [
+        Query.equal(attribute, businessId.trim()),
+        Query.orderDesc("$createdAt"),
+        Query.limit(limit),
+      ]);
+      for (const doc of resp.documents) merged.set(doc.$id, doc);
+    } catch {}
+  }
+  return Array.from(merged.values());
 }
 
 export async function fetchAllUsers({ limit = 100 }: { limit?: number } = {}) {

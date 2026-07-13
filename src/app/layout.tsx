@@ -11,9 +11,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "AMC MEP 24x7 — One App",
+  title: "AMC MEP Workspace",
   description:
-    "Unified platform for AMC MEP services. Customers, partners, and administrators — all in one place.",
+    "Business operations, service work, teams, documents, and finance for AMC MEP businesses.",
   keywords: ["AMC", "MEP", "HVAC", "fire safety", "maintenance", "services"],
 };
 

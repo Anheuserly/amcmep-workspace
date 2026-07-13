@@ -211,6 +211,8 @@ export async function consumeApprovedQrLogin(tokenOrPayload: string): Promise<Us
     phone: session.approvedPhone,
     roles: ["customer"],
     activeRole: "customer",
+    businessIds: [],
+    activeBusinessId: undefined,
     preferredLanguage: "en",
     createdAt: session.requestedAt,
     updatedAt: now,
