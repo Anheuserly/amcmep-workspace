@@ -7,7 +7,6 @@ export const appwriteConfig = {
     process.env.NEXT_PUBLIC_APPWRITE_PROJECT_NAME ?? "SHREE GANESH ENTERPRIESES",
   databaseId:
     process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ?? "680b2cfb002805548743",
-  apiKey: process.env.APPWRITE_API_KEY ?? "",
   collections: {
     administrators:
       process.env.NEXT_PUBLIC_ADMINISTRATORS_COLLECTION_ID ?? "681c97fa003d57ddf43d",
@@ -67,13 +66,4 @@ export const appwriteConfig = {
 
 export function hasPublicAppwriteConfig() {
   return Boolean(appwriteConfig.endpoint && appwriteConfig.projectId);
-}
-
-export function hasServerAppwriteConfig() {
-  return Boolean(
-    appwriteConfig.endpoint &&
-      appwriteConfig.projectId &&
-      appwriteConfig.databaseId &&
-      appwriteConfig.apiKey,
-  );
 }
