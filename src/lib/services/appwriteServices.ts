@@ -742,14 +742,25 @@ export async function fetchBusinessRequests(businessId: string, limit = 100) {
 
 export type BusinessRecordTable = "projects" | "tasks" | "quotations" | "invoices" | "businessItems" | "documents" | "amcContracts" | "amcVisits";
 
-export async function fetchBusinessRecords(table: BusinessRecordTable, businessId: string, limit = 100) {
+export async function fetchBusinessRecords(table: BusinessRecordTable, businessId: string, limit = 100, userId?: string) {
   if (!businessId.trim()) return [];
+  if (userId) {
+    const params = new URLSearchParams({ table: COLLECTIONS[table], businessId: businessId.trim(), userId });
+    const response = await fetch(`/api/business-records?${params}`);
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Records could not be loaded.");
+    return result.documents;
+  }
   const response = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS[table], [
     Query.equal("businessId", businessId.trim()),
     Query.orderDesc("$createdAt"),
     Query.limit(limit),
   ]);
   return response.documents;
+}
+
+export async function createBusinessRecord(table: BusinessRecordTable, data: Record<string, unknown>) {
+  return appwrite.databases.createDocument(DB_ID, COLLECTIONS[table], ID.unique(), data);
 }
 
 export function recordCreator(doc: any) {
