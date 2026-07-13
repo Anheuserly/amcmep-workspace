@@ -47,7 +47,7 @@ export function AppShell({ children, allowedRoles }: AppShellProps) {
         <Navbar onMenuClick={() => setSidebarOpen(true)} showMenu={showSidebar} />
         <div className="flex">
           {showSidebar && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
-          <main className={`min-h-screen flex-1 pt-[72px] ${showSidebar ? "lg:ml-64" : ""}`}>
+          <main className={`min-h-screen flex-1 pt-16 ${showSidebar ? "lg:ml-[220px]" : ""}`}>
             <div className="mx-auto max-w-[1500px] p-4 sm:p-6">
               {children}
             </div>

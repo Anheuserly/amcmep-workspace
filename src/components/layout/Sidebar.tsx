@@ -96,25 +96,25 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
   return (
     <>
       {isOpen ? <button aria-label="Close navigation" className="fixed inset-0 z-40 bg-slate-950/30 backdrop-blur-sm lg:hidden" onClick={onClose} /> : null}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#071426] text-white transition-transform duration-200 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex h-[72px] items-center justify-between border-b border-white/10 px-4">
-          <a href="/" className="flex min-w-0 items-center gap-3">
-            <Image src="/amcmep-one-icon.png" alt="AMC MEP Workspace" width={42} height={42} className="rounded-lg" priority />
-            <div className="min-w-0"><p className="truncate text-base font-bold">AMC MEP</p><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">Workspace</p></div>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col bg-[#071426] text-white transition-transform duration-200 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex h-16 items-center justify-between border-b border-white/10 px-3.5">
+          <a href="/" className="flex min-w-0 items-center gap-2.5">
+            <Image src="/amcmep-one-icon.png" alt="AMC MEP Workspace" width={36} height={36} className="rounded-md" priority />
+            <div className="min-w-0"><p className="truncate text-sm font-bold">AMC MEP</p><p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-blue-300">Workspace</p></div>
           </a>
           <button onClick={onClose} className="rounded-md p-2 text-slate-300 hover:bg-white/10 lg:hidden" aria-label="Close menu"><X size={18} /></button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
-          <div className="space-y-5">
-            {navigation.map((group, index) => { const visible = group.items.filter((item) => !membership || can(membership, item.permission as WorkspacePermission)); if (!visible.length) return null; return <section key={group.label || index}>{group.label ? <p className="mb-2 px-3 text-[10px] font-bold uppercase text-slate-500">{group.label}</p> : null}<ul className="space-y-1">{visible.map((item) => { const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)); return <li key={item.href}><a href={item.href} onClick={onClose} className={`flex h-10 items-center gap-3 rounded-md px-3 text-[13px] font-semibold transition ${active ? "bg-blue-600 text-white shadow-sm" : "text-slate-300 hover:bg-white/8 hover:text-white"}`}><item.icon size={17} /><span>{item.label}</span></a></li>; })}</ul></section>; })}
+        <nav className="flex-1 overflow-y-auto px-2.5 py-3.5">
+          <div className="space-y-3.5">
+            {navigation.map((group, index) => { const visible = group.items.filter((item) => !membership || can(membership, item.permission as WorkspacePermission)); if (!visible.length) return null; return <section key={group.label || index}>{group.label ? <p className="mb-1.5 px-2.5 text-[9px] font-bold uppercase text-slate-500">{group.label}</p> : null}<ul className="space-y-0.5">{visible.map((item) => { const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)); return <li key={item.href}><a href={item.href} onClick={onClose} className={`flex h-9 items-center gap-2.5 rounded-md px-2.5 text-xs font-semibold transition ${active ? "bg-blue-600 text-white shadow-sm" : "text-slate-300 hover:bg-white/8 hover:text-white"}`}><item.icon size={15} /><span className="truncate">{item.label}</span></a></li>; })}</ul></section>; })}
           </div>
         </nav>
 
-        <div className="border-t border-white/10 p-3">
-          <a href="https://app.amcmep.in" className="mb-2 flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-slate-300 hover:bg-white/8 hover:text-white"><ArrowUpRight size={18} />Open One App</a>
-          <button onClick={signOut} className="flex h-11 w-full items-center gap-3 rounded-md px-3 text-sm font-semibold text-rose-300 hover:bg-rose-500/10"><LogOut size={18} />Sign out</button>
-          <div className="mt-3 border-t border-white/10 px-3 pt-3"><p className="truncate text-xs font-semibold text-white">{profile?.name || "Workspace member"}</p><p className="mt-1 truncate text-[11px] text-slate-400">{profile?.customerId || profile?.email}</p></div>
+        <div className="border-t border-white/10 p-2.5">
+          <a href="https://app.amcmep.in" className="mb-1 flex h-9 items-center gap-2.5 rounded-md px-2.5 text-xs font-semibold text-slate-300 hover:bg-white/8 hover:text-white"><ArrowUpRight size={15} />Open One App</a>
+          <button onClick={signOut} className="flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10"><LogOut size={15} />Sign out</button>
+          <div className="mt-2 border-t border-white/10 px-2.5 pt-2"><p className="truncate text-[11px] font-semibold text-white">{profile?.name || "Member"}</p><p className="mt-0.5 truncate text-[10px] text-slate-400">{profile?.customerId || profile?.email}</p></div>
         </div>
       </aside>
     </>
