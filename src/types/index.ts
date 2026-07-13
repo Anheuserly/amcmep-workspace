@@ -202,7 +202,7 @@ export interface WorkspaceMembership {
   $id: string;
   businessId: string;
   userId: string;
-  role: "owner" | "admin" | "partner" | "staff";
+  role: "owner" | "administrator" | "project_manager" | "accounts" | "hr" | "technician" | "partner" | "viewer";
   permissions: string[];
   memberName?: string;
   memberPhone?: string;

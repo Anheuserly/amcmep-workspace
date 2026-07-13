@@ -121,7 +121,7 @@ export function WorkspaceDashboard() {
 
   const activeBusiness = state.businesses.find((item) => item.$id === activeBusinessId);
   const viewerMembership = state.memberships.find((item) => item.businessId === activeBusinessId);
-  const isManager = viewerMembership?.role === "owner" || viewerMembership?.role === "admin" || activeBusiness?.ownerId === profile?.userId;
+  const isManager = viewerMembership?.role === "owner" || viewerMembership?.role === "administrator" || activeBusiness?.ownerId === profile?.userId;
   const openRequests = state.requests.filter((item) => item.status === "open" || item.status === "in_progress");
   const completed = state.assignments.filter((item) => item.status === "completed");
   const assignedValue = state.assignments.reduce((sum, item) => sum + item.earnings, 0);

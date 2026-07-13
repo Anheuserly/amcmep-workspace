@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ArrowUpRight,
@@ -13,25 +14,79 @@ import {
   ShieldCheck,
   Users,
   WalletCards,
+  BadgeIndianRupee,
+  BookTemplate,
+  Boxes,
+  ContactRound,
+  FileBarChart,
+  FileStack,
+  HandCoins,
+  Landmark,
+  MapPinned,
+  Network,
+  ReceiptIndianRupee,
+  ScrollText,
+  Tickets,
+  UserCog,
+  UsersRound,
   X,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
+import { fetchMembershipsForUser, toWorkspaceMembership } from "@/lib/services/appwriteServices";
+import { can, type WorkspacePermission } from "@/lib/workspace/permissions";
+import type { WorkspaceMembership } from "@/types";
 
 const navigation = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "My business", href: "/business", icon: Building2 },
-  { label: "Partners & team", href: "/team", icon: Users },
-  { label: "Work & projects", href: "/projects", icon: ClipboardList },
-  { label: "AMC & services", href: "/services", icon: ShieldCheck },
-  { label: "Finance", href: "/finance", icon: WalletCards },
-  { label: "Documents", href: "/documents", icon: FileText },
-  { label: "Business settings", href: "/business-settings", icon: Settings },
+  { label: "", items: [{ label: "Dashboard", href: "/", icon: LayoutDashboard, permission: "business.view" }] },
+  { label: "Business", items: [
+    { label: "My business", href: "/business", icon: Building2, permission: "business.view" },
+    { label: "Partners & teams", href: "/team", icon: UsersRound, permission: "team.view" },
+    { label: "Departments", href: "/departments", icon: Network, permission: "team.view" },
+    { label: "Roles & permissions", href: "/roles", icon: UserCog, permission: "team.view" },
+  ]},
+  { label: "Operations", items: [
+    { label: "Projects", href: "/projects", icon: ClipboardList, permission: "projects.view" },
+    { label: "Site management", href: "/sites", icon: MapPinned, permission: "sites.view" },
+    { label: "Clients & leads", href: "/clients", icon: ContactRound, permission: "clients.view" },
+    { label: "Vendors & suppliers", href: "/vendors", icon: Boxes, permission: "vendors.view" },
+    { label: "Tasks & tickets", href: "/tasks", icon: Tickets, permission: "tasks.view" },
+    { label: "AMC & services", href: "/services", icon: ShieldCheck, permission: "services.view" },
+  ]},
+  { label: "Finance", items: [
+    { label: "Invoices", href: "/invoices", icon: ReceiptIndianRupee, permission: "finance.view" },
+    { label: "Payments", href: "/payments", icon: HandCoins, permission: "finance.view" },
+    { label: "Expenses", href: "/expenses", icon: WalletCards, permission: "finance.view" },
+    { label: "Quotations", href: "/quotations", icon: ScrollText, permission: "finance.view" },
+    { label: "Reports", href: "/reports", icon: FileBarChart, permission: "reports.view" },
+  ]},
+  { label: "Documents", items: [
+    { label: "Documents", href: "/documents", icon: FileText, permission: "documents.view" },
+    { label: "Templates", href: "/templates", icon: BookTemplate, permission: "documents.view" },
+    { label: "Files & media", href: "/files", icon: FileStack, permission: "documents.view" },
+  ]},
+  { label: "Settings", items: [
+    { label: "Business settings", href: "/business-settings", icon: Settings, permission: "settings.manage" },
+    { label: "Integrations", href: "/integrations", icon: Landmark, permission: "settings.manage" },
+    { label: "Account settings", href: "/account-settings", icon: BadgeIndianRupee, permission: "business.view" },
+  ]},
 ];
 
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const { profile, logout } = useAuth();
+  const [membership, setMembership] = useState<WorkspaceMembership | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!profile?.userId) return;
+    fetchMembershipsForUser(profile.userId).then((documents) => {
+      if (!active) return;
+      const memberships = documents.map(toWorkspaceMembership);
+      setMembership(memberships.find((item) => item.businessId === profile.activeBusinessId) ?? memberships[0] ?? null);
+    }).catch(() => setMembership(null));
+    return () => { active = false; };
+  }, [profile?.activeBusinessId, profile?.userId]);
 
   async function signOut() {
     await logout();
@@ -51,12 +106,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-5">
-          <ul className="space-y-1">
-            {navigation.map((item) => {
-              const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-              return <li key={item.href}><a href={item.href} onClick={onClose} className={`flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold transition ${active ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-white/8 hover:text-white"}`}><item.icon size={18} /><span>{item.label}</span></a></li>;
-            })}
-          </ul>
+          <div className="space-y-5">
+            {navigation.map((group, index) => { const visible = group.items.filter((item) => !membership || can(membership, item.permission as WorkspacePermission)); if (!visible.length) return null; return <section key={group.label || index}>{group.label ? <p className="mb-2 px-3 text-[10px] font-bold uppercase text-slate-500">{group.label}</p> : null}<ul className="space-y-1">{visible.map((item) => { const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)); return <li key={item.href}><a href={item.href} onClick={onClose} className={`flex h-10 items-center gap-3 rounded-md px-3 text-[13px] font-semibold transition ${active ? "bg-blue-600 text-white shadow-sm" : "text-slate-300 hover:bg-white/8 hover:text-white"}`}><item.icon size={17} /><span>{item.label}</span></a></li>; })}</ul></section>; })}
+          </div>
         </nav>
 
         <div className="border-t border-white/10 p-3">

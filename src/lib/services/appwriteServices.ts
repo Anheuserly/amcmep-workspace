@@ -342,11 +342,13 @@ export function toBusiness(doc: any): Business {
 }
 
 export function toWorkspaceMembership(doc: any): WorkspaceMembership {
+  const rawRole = readString(doc, "role") || "viewer";
+  const role = rawRole === "admin" || rawRole === "staff" ? (rawRole === "admin" ? "administrator" : "technician") : rawRole;
   return {
     $id: doc.$id,
     businessId: readString(doc, "businessId"),
     userId: readString(doc, "userId") || readString(doc, "memberUserId"),
-    role: (readString(doc, "role") || "staff") as WorkspaceMembership["role"],
+    role: role as WorkspaceMembership["role"],
     permissions: readStringArray(doc, "permissions"),
     memberName: readString(doc, "memberName"),
     memberPhone: readString(doc, "memberPhone"),
@@ -643,6 +645,52 @@ export async function fetchBusinesses({ ownerId, limit = 100 }: { ownerId?: stri
 export async function fetchBusinessMemberships(businessId: string) {
   const resp = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS.businessMemberships, [Query.equal("businessId", businessId), Query.equal("status", "active"), Query.limit(100)]);
   return resp.documents;
+}
+
+export async function findWorkspaceUsers(search: string, limit = 12) {
+  const value = search.trim();
+  if (value.length < 2) return [];
+  const merged = new Map<string, any>();
+  for (const attribute of ["customerId", "email", "phone", "name"]) {
+    try {
+      const response = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS.clients, [
+        Query.search(attribute, value),
+        Query.limit(limit),
+      ]);
+      for (const document of response.documents) merged.set(document.$id, document);
+    } catch {}
+  }
+  return Array.from(merged.values()).slice(0, limit);
+}
+
+export async function addWorkspaceMember(data: {
+  businessId: string;
+  userId: string;
+  role: WorkspaceMembership["role"];
+  permissions: string[];
+  memberName: string;
+  memberPhone?: string;
+}) {
+  const existing = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS.businessMemberships, [
+    Query.equal("businessId", data.businessId),
+    Query.equal("userId", data.userId),
+    Query.limit(1),
+  ]);
+  const payload = {
+    ...data,
+    memberPhone: data.memberPhone ?? "",
+    status: "active",
+    onDuty: true,
+    joinedAt: new Date().toISOString(),
+  };
+  if (existing.documents[0]) {
+    return appwrite.databases.updateDocument(DB_ID, COLLECTIONS.businessMemberships, existing.documents[0].$id, payload);
+  }
+  return appwrite.databases.createDocument(DB_ID, COLLECTIONS.businessMemberships, ID.unique(), payload);
+}
+
+export async function updateWorkspaceMember(memberId: string, data: Partial<Pick<WorkspaceMembership, "role" | "permissions" | "status" | "onDuty">>) {
+  return appwrite.databases.updateDocument(DB_ID, COLLECTIONS.businessMemberships, memberId, data);
 }
 
 export async function fetchMembershipsForUser(userId: string) {
