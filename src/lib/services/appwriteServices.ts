@@ -33,6 +33,14 @@ const COLLECTIONS = {
   assignments: "assignments",
   paymentConfig: "6888bdc300110b2eecca",
   partners: "680b308e002ef25fd54b",
+  projects: "projects",
+  tasks: "tasks",
+  quotations: "quotations",
+  invoices: "invoices",
+  businessItems: "business_items",
+  documents: "documents",
+  amcContracts: "amc_contracts",
+  amcVisits: "amc_visits",
 } as const;
 
 const BUCKETS = {
@@ -730,6 +738,25 @@ export async function fetchBusinessRequests(businessId: string, limit = 100) {
     } catch {}
   }
   return Array.from(merged.values());
+}
+
+export type BusinessRecordTable = "projects" | "tasks" | "quotations" | "invoices" | "businessItems" | "documents" | "amcContracts" | "amcVisits";
+
+export async function fetchBusinessRecords(table: BusinessRecordTable, businessId: string, limit = 100) {
+  if (!businessId.trim()) return [];
+  const response = await appwrite.databases.listDocuments(DB_ID, COLLECTIONS[table], [
+    Query.equal("businessId", businessId.trim()),
+    Query.orderDesc("$createdAt"),
+    Query.limit(limit),
+  ]);
+  return response.documents;
+}
+
+export function recordCreator(doc: any) {
+  return {
+    userId: readString(doc, "createdBy") || readString(doc, "createdByAdminId"),
+    name: readString(doc, "createdByName") || readString(doc, "createdByAdminName"),
+  };
 }
 
 export async function fetchAllUsers({ limit = 100 }: { limit?: number } = {}) {
