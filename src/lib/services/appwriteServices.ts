@@ -41,6 +41,10 @@ const COLLECTIONS = {
   documents: "documents",
   amcContracts: "amc_contracts",
   amcVisits: "amc_visits",
+  commercialDocuments: "commercial_documents",
+  billingProfiles: "business_billing_profiles",
+  billingParties: "billing_parties",
+  documentTemplates: "document_templates",
 } as const;
 
 const BUCKETS = {
@@ -740,7 +744,7 @@ export async function fetchBusinessRequests(businessId: string, limit = 100) {
   return Array.from(merged.values());
 }
 
-export type BusinessRecordTable = "projects" | "tasks" | "quotations" | "invoices" | "businessItems" | "documents" | "amcContracts" | "amcVisits";
+export type BusinessRecordTable = "projects" | "tasks" | "quotations" | "invoices" | "businessItems" | "documents" | "amcContracts" | "amcVisits" | "commercialDocuments" | "billingProfiles" | "billingParties" | "documentTemplates";
 
 export async function fetchBusinessRecords(table: BusinessRecordTable, businessId: string, limit = 100, userId?: string) {
   if (!businessId.trim()) return [];

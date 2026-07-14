@@ -1,63 +1,365 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, CheckCircle2, CircleDollarSign, ClipboardList, FileText, IndianRupee, Loader2, MapPin, Plus, Search, ShieldAlert, Users } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
+  ClipboardList,
+  FileText,
+  IndianRupee,
+  Loader2,
+  MapPin,
+  Plus,
+  Search,
+  ShieldAlert,
+  Users,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
-import { addWorkspaceMember, fetchAssignments, fetchBusinessMemberships, fetchBusinessRecords, fetchBusinessRequests, fetchBusinessesByIds, fetchMembershipsForUser, findWorkspaceUsers, readString, recordCreator, toBusiness, toPartnerAssignment, toServiceRequest, toWorkspaceMembership, updateWorkspaceMember, type BusinessRecordTable } from "@/lib/services/appwriteServices";
-import { can, roleDefinitions, type WorkspacePermission } from "@/lib/workspace/permissions";
-import type { Business, PartnerAssignment, ServiceRequest, WorkspaceMembership } from "@/types";
+import {
+  addWorkspaceMember,
+  fetchAssignments,
+  fetchBusinessMemberships,
+  fetchBusinessRecords,
+  fetchBusinessRequests,
+  fetchBusinessesByIds,
+  fetchMembershipsForUser,
+  findWorkspaceUsers,
+  readString,
+  recordCreator,
+  toBusiness,
+  toPartnerAssignment,
+  toServiceRequest,
+  toWorkspaceMembership,
+  updateWorkspaceMember,
+  type BusinessRecordTable,
+} from "@/lib/services/appwriteServices";
+import {
+  can,
+  roleDefinitions,
+  type WorkspacePermission,
+} from "@/lib/workspace/permissions";
+import type {
+  Business,
+  PartnerAssignment,
+  ServiceRequest,
+  WorkspaceMembership,
+} from "@/types";
+import {
+  CommercialDocuments,
+  type CommercialDocumentType,
+} from "@/components/workspace/CommercialDocuments";
 
-const sectionMeta: Record<string, { title: string; description: string; permission: WorkspacePermission }> = {
-  business: { title: "My business", description: "Identity, capabilities, locations, verification, and public information.", permission: "business.view" },
-  team: { title: "Partners & teams", description: "Invite people, assign organization roles, and control workspace access.", permission: "team.view" },
-  departments: { title: "Departments", description: "Organize team members around projects, accounts, HR, and field operations.", permission: "team.view" },
-  roles: { title: "Roles & permissions", description: "Understand and manage access for every workspace responsibility.", permission: "team.view" },
-  projects: { title: "Projects", description: "Track accepted work, delivery status, owners, and completion.", permission: "projects.view" },
-  sites: { title: "Site management", description: "See active work locations and scheduled field activity.", permission: "sites.view" },
-  clients: { title: "Clients & leads", description: "People and organizations connected to service requests.", permission: "clients.view" },
-  vendors: { title: "Vendors & suppliers", description: "Partner access and supplier relationships for the active business.", permission: "vendors.view" },
-  tasks: { title: "Tasks & tickets", description: "Actionable service work for the current team.", permission: "tasks.view" },
-  services: { title: "AMC & services", description: "Maintenance and service delivery records connected to this business.", permission: "services.view" },
-  invoices: { title: "Invoices", description: "Billable completed and assigned business work.", permission: "finance.view" },
-  payments: { title: "Payments", description: "Payment status and received value from workspace records.", permission: "finance.view" },
-  expenses: { title: "Expenses", description: "Track operating costs as finance records become available.", permission: "finance.view" },
-  quotations: { title: "Quotations", description: "Prepare and follow proposed service values.", permission: "finance.view" },
-  reports: { title: "Reports", description: "Operational and financial summaries for this business.", permission: "reports.view" },
-  documents: { title: "Documents", description: "Business reports and field documentation.", permission: "documents.view" },
-  templates: { title: "Templates", description: "Reusable formats for quotations, visits, and reports.", permission: "documents.view" },
-  files: { title: "Files & media", description: "Workspace uploads, images, and field evidence.", permission: "documents.view" },
-  "business-settings": { title: "Business settings", description: "Workspace preferences and business controls.", permission: "settings.manage" },
-  integrations: { title: "Integrations", description: "Connections used by this workspace.", permission: "settings.manage" },
-  "account-settings": { title: "Account settings", description: "Your workspace identity and account access.", permission: "business.view" },
+const sectionMeta: Record<
+  string,
+  { title: string; description: string; permission: WorkspacePermission }
+> = {
+  business: {
+    title: "My business",
+    description:
+      "Identity, capabilities, locations, verification, and public information.",
+    permission: "business.view",
+  },
+  team: {
+    title: "Partners & teams",
+    description:
+      "Invite people, assign organization roles, and control workspace access.",
+    permission: "team.view",
+  },
+  departments: {
+    title: "Departments",
+    description:
+      "Organize team members around projects, accounts, HR, and field operations.",
+    permission: "team.view",
+  },
+  roles: {
+    title: "Roles & permissions",
+    description:
+      "Understand and manage access for every workspace responsibility.",
+    permission: "team.view",
+  },
+  projects: {
+    title: "Projects",
+    description:
+      "Track accepted work, delivery status, owners, and completion.",
+    permission: "projects.view",
+  },
+  sites: {
+    title: "Site management",
+    description: "See active work locations and scheduled field activity.",
+    permission: "sites.view",
+  },
+  clients: {
+    title: "Clients & leads",
+    description: "People and organizations connected to service requests.",
+    permission: "clients.view",
+  },
+  vendors: {
+    title: "Vendors & suppliers",
+    description:
+      "Partner access and supplier relationships for the active business.",
+    permission: "vendors.view",
+  },
+  tasks: {
+    title: "Tasks & tickets",
+    description: "Actionable service work for the current team.",
+    permission: "tasks.view",
+  },
+  services: {
+    title: "AMC & services",
+    description:
+      "Maintenance and service delivery records connected to this business.",
+    permission: "services.view",
+  },
+  invoices: {
+    title: "Invoices",
+    description: "Billable completed and assigned business work.",
+    permission: "finance.view",
+  },
+  "proforma-invoices": {
+    title: "Proforma invoices",
+    description: "Preliminary invoices issued before the final tax invoice.",
+    permission: "finance.view",
+  },
+  payments: {
+    title: "Payments",
+    description: "Payment status and received value from workspace records.",
+    permission: "finance.view",
+  },
+  expenses: {
+    title: "Expenses",
+    description: "Track operating costs as finance records become available.",
+    permission: "finance.view",
+  },
+  quotations: {
+    title: "Quotations",
+    description: "Prepare and follow proposed service values.",
+    permission: "finance.view",
+  },
+  "purchase-orders": {
+    title: "Purchase orders",
+    description: "Orders placed with suppliers for goods and services.",
+    permission: "finance.view",
+  },
+  "work-orders": {
+    title: "Work orders",
+    description: "Authorized scopes, commercial values, and delivery terms.",
+    permission: "finance.view",
+  },
+  reports: {
+    title: "Reports",
+    description: "Operational and financial summaries for this business.",
+    permission: "reports.view",
+  },
+  documents: {
+    title: "Documents",
+    description: "Business reports and field documentation.",
+    permission: "documents.view",
+  },
+  templates: {
+    title: "Templates",
+    description: "Reusable formats for quotations, visits, and reports.",
+    permission: "documents.view",
+  },
+  files: {
+    title: "Files & media",
+    description: "Workspace uploads, images, and field evidence.",
+    permission: "documents.view",
+  },
+  "business-settings": {
+    title: "Business settings",
+    description: "Workspace preferences and business controls.",
+    permission: "settings.manage",
+  },
+  integrations: {
+    title: "Integrations",
+    description: "Connections used by this workspace.",
+    permission: "settings.manage",
+  },
+  "account-settings": {
+    title: "Account settings",
+    description: "Your workspace identity and account access.",
+    permission: "business.view",
+  },
 };
 
 const sectionTables: Partial<Record<string, BusinessRecordTable>> = {
-  projects: "projects", tasks: "tasks", quotations: "quotations", invoices: "invoices",
-  documents: "documents", files: "documents", services: "amcContracts",
+  projects: "projects",
+  tasks: "tasks",
+  quotations: "commercialDocuments",
+  invoices: "commercialDocuments",
+  "proforma-invoices": "commercialDocuments",
+  "purchase-orders": "commercialDocuments",
+  "work-orders": "commercialDocuments",
+  documents: "documents",
+  files: "documents",
+  templates: "documentTemplates",
+  services: "amcContracts",
 };
 
-type Field = { key: string; label: string; type?: "text" | "number" | "date" | "textarea" | "select"; required?: boolean; options?: string[] };
-type RecordSection = { table: BusinessRecordTable; action: string; manage: WorkspacePermission; fields: Field[]; titleKeys: string[]; detailKeys: string[]; amountKey?: string; dateKeys?: string[] };
+type Field = {
+  key: string;
+  label: string;
+  type?: "text" | "number" | "date" | "textarea" | "select";
+  required?: boolean;
+  options?: string[];
+};
+type RecordSection = {
+  table: BusinessRecordTable;
+  action: string;
+  manage: WorkspacePermission;
+  fields: Field[];
+  titleKeys: string[];
+  detailKeys: string[];
+  amountKey?: string;
+  dateKeys?: string[];
+};
 
 const recordSections: Partial<Record<string, RecordSection>> = {
-  projects: { table: "projects", action: "New project", manage: "projects.manage", titleKeys: ["name"], detailKeys: ["clientName", "siteAddress"], amountKey: "budget", dateKeys: ["endDate", "startDate"], fields: [
-    { key: "name", label: "Project name", required: true }, { key: "clientName", label: "Client" }, { key: "siteAddress", label: "Site address", required: true }, { key: "budget", label: "Budget", type: "number" }, { key: "startDate", label: "Start date", type: "date" }, { key: "endDate", label: "Target date", type: "date" }, { key: "description", label: "Scope", type: "textarea" },
-  ]},
-  tasks: { table: "tasks", action: "New task", manage: "tasks.manage", titleKeys: ["title"], detailKeys: ["description", "assignedTo"], dateKeys: ["dueAt"], fields: [
-    { key: "title", label: "Task", required: true }, { key: "description", label: "Details", type: "textarea" }, { key: "assignedTo", label: "Assignee user ID" }, { key: "priority", label: "Priority", type: "select", options: ["low", "medium", "high", "urgent"] }, { key: "dueAt", label: "Due date", type: "date" },
-  ]},
-  quotations: { table: "quotations", action: "New quotation", manage: "finance.manage", titleKeys: ["quotationNumber", "serviceType"], detailKeys: ["clientName", "siteLocation"], amountKey: "totalAmount", fields: [
-    { key: "quotationNumber", label: "Quotation number", required: true }, { key: "clientName", label: "Client", required: true }, { key: "serviceType", label: "Service" }, { key: "siteLocation", label: "Site" }, { key: "subtotal", label: "Subtotal", type: "number" }, { key: "gstPercentage", label: "GST %", type: "number" }, { key: "validityDays", label: "Validity (days)", type: "number" }, { key: "specialNotes", label: "Notes", type: "textarea" },
-  ]},
-  invoices: { table: "invoices", action: "New invoice", manage: "finance.manage", titleKeys: ["invoiceNumber"], detailKeys: ["clientName", "projectId"], amountKey: "totalAmount", dateKeys: ["dueDate"], fields: [
-    { key: "invoiceNumber", label: "Invoice number", required: true }, { key: "clientName", label: "Client", required: true }, { key: "projectId", label: "Project ID" }, { key: "subtotal", label: "Subtotal", type: "number" }, { key: "taxAmount", label: "Tax", type: "number" }, { key: "dueDate", label: "Due date", type: "date" },
-  ]},
-  documents: { table: "documents", action: "Upload document", manage: "documents.manage", titleKeys: ["title", "fileName"], detailKeys: ["category", "createdByName"], dateKeys: ["createdAt"], fields: [] },
-  files: { table: "documents", action: "Upload file", manage: "documents.manage", titleKeys: ["fileName", "title"], detailKeys: ["mimeType", "category"], dateKeys: ["createdAt"], fields: [] },
-  services: { table: "amcContracts", action: "New AMC contract", manage: "services.manage", titleKeys: ["title", "contractNumber"], detailKeys: ["clientName", "siteAddress"], amountKey: "contractValue", dateKeys: ["endDate", "nextVisitAt"], fields: [
-    { key: "title", label: "Contract name", required: true }, { key: "clientName", label: "Customer", required: true }, { key: "siteAddress", label: "Site address" }, { key: "startDate", label: "Start date", type: "date" }, { key: "endDate", label: "End date", type: "date" }, { key: "contractValue", label: "Contract value", type: "number" }, { key: "totalVisits", label: "Planned visits", type: "number" },
-  ]},
+  projects: {
+    table: "projects",
+    action: "New project",
+    manage: "projects.manage",
+    titleKeys: ["name"],
+    detailKeys: ["clientName", "siteAddress"],
+    amountKey: "budget",
+    dateKeys: ["endDate", "startDate"],
+    fields: [
+      { key: "name", label: "Project name", required: true },
+      { key: "clientName", label: "Client" },
+      { key: "siteAddress", label: "Site address", required: true },
+      { key: "budget", label: "Budget", type: "number" },
+      { key: "startDate", label: "Start date", type: "date" },
+      { key: "endDate", label: "Target date", type: "date" },
+      { key: "description", label: "Scope", type: "textarea" },
+    ],
+  },
+  tasks: {
+    table: "tasks",
+    action: "New task",
+    manage: "tasks.manage",
+    titleKeys: ["title"],
+    detailKeys: ["description", "assignedTo"],
+    dateKeys: ["dueAt"],
+    fields: [
+      { key: "title", label: "Task", required: true },
+      { key: "description", label: "Details", type: "textarea" },
+      { key: "assignedTo", label: "Assignee user ID" },
+      {
+        key: "priority",
+        label: "Priority",
+        type: "select",
+        options: ["low", "medium", "high", "urgent"],
+      },
+      { key: "dueAt", label: "Due date", type: "date" },
+    ],
+  },
+  quotations: {
+    table: "quotations",
+    action: "New quotation",
+    manage: "finance.manage",
+    titleKeys: ["quotationNumber", "serviceType"],
+    detailKeys: ["clientName", "siteLocation"],
+    amountKey: "totalAmount",
+    fields: [
+      { key: "quotationNumber", label: "Quotation number", required: true },
+      { key: "clientName", label: "Client", required: true },
+      { key: "serviceType", label: "Service" },
+      { key: "siteLocation", label: "Site" },
+      { key: "subtotal", label: "Subtotal", type: "number" },
+      { key: "gstPercentage", label: "GST %", type: "number" },
+      { key: "validityDays", label: "Validity (days)", type: "number" },
+      { key: "specialNotes", label: "Notes", type: "textarea" },
+    ],
+  },
+  invoices: {
+    table: "invoices",
+    action: "New invoice",
+    manage: "finance.manage",
+    titleKeys: ["invoiceNumber"],
+    detailKeys: ["clientName", "projectId"],
+    amountKey: "totalAmount",
+    dateKeys: ["dueDate"],
+    fields: [
+      { key: "invoiceNumber", label: "Invoice number", required: true },
+      { key: "clientName", label: "Client", required: true },
+      { key: "projectId", label: "Project ID" },
+      { key: "subtotal", label: "Subtotal", type: "number" },
+      { key: "taxAmount", label: "Tax", type: "number" },
+      { key: "dueDate", label: "Due date", type: "date" },
+    ],
+  },
+  documents: {
+    table: "documents",
+    action: "Upload document",
+    manage: "documents.manage",
+    titleKeys: ["title", "fileName"],
+    detailKeys: ["category", "createdByName"],
+    dateKeys: ["createdAt"],
+    fields: [],
+  },
+  files: {
+    table: "documents",
+    action: "Upload file",
+    manage: "documents.manage",
+    titleKeys: ["fileName", "title"],
+    detailKeys: ["mimeType", "category"],
+    dateKeys: ["createdAt"],
+    fields: [],
+  },
+  templates: {
+    table: "documentTemplates",
+    action: "New template",
+    manage: "documents.manage",
+    titleKeys: ["name"],
+    detailKeys: ["documentType", "numberPattern"],
+    dateKeys: ["updatedAt", "createdAt"],
+    fields: [
+      { key: "name", label: "Template name", required: true },
+      {
+        key: "documentType",
+        label: "Document type",
+        type: "select",
+        options: [
+          "quotation",
+          "proforma_invoice",
+          "tax_invoice",
+          "purchase_order",
+          "work_order",
+        ],
+      },
+      { key: "prefix", label: "Number prefix" },
+      { key: "numberPattern", label: "Number pattern" },
+      { key: "accentColor", label: "Accent colour" },
+      {
+        key: "defaultTerms",
+        label: "Default terms and conditions",
+        type: "textarea",
+      },
+      { key: "defaultNotes", label: "Default notes", type: "textarea" },
+      { key: "footerText", label: "Footer text", type: "textarea" },
+    ],
+  },
+  services: {
+    table: "amcContracts",
+    action: "New AMC contract",
+    manage: "services.manage",
+    titleKeys: ["title", "contractNumber"],
+    detailKeys: ["clientName", "siteAddress"],
+    amountKey: "contractValue",
+    dateKeys: ["endDate", "nextVisitAt"],
+    fields: [
+      { key: "title", label: "Contract name", required: true },
+      { key: "clientName", label: "Customer", required: true },
+      { key: "siteAddress", label: "Site address" },
+      { key: "startDate", label: "Start date", type: "date" },
+      { key: "endDate", label: "End date", type: "date" },
+      { key: "contractValue", label: "Contract value", type: "number" },
+      { key: "totalVisits", label: "Planned visits", type: "number" },
+    ],
+  },
 };
 
 export function WorkspaceSection({ section }: { section: string }) {
@@ -65,84 +367,1121 @@ export function WorkspaceSection({ section }: { section: string }) {
   const meta = sectionMeta[section];
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState<Business | null>(null);
-  const [membership, setMembership] = useState<WorkspaceMembership | null>(null);
+  const [membership, setMembership] = useState<WorkspaceMembership | null>(
+    null,
+  );
   const [members, setMembers] = useState<WorkspaceMembership[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [assignments, setAssignments] = useState<PartnerAssignment[]>([]);
   const [businessRecords, setBusinessRecords] = useState<any[]>([]);
 
-  useEffect(() => { let active = true; (async () => { if (!profile?.userId) return; setLoading(true); try { const own = (await fetchMembershipsForUser(profile.userId)).map(toWorkspaceMembership); const selected = own.find((item) => item.businessId === profile.activeBusinessId) ?? own[0]; if (!selected) return; const table = sectionTables[section]; const [businessDoc, memberDocs, requestDocs, assignmentDocs, records] = await Promise.all([fetchBusinessesByIds([selected.businessId]), fetchBusinessMemberships(selected.businessId), fetchBusinessRequests(selected.businessId), fetchAssignments({ businessId: selected.businessId }), table ? fetchBusinessRecords(table, selected.businessId, 100, profile.userId).catch(() => []) : Promise.resolve([])]); if (!active) return; setMembership(selected); setBusiness(businessDoc[0] ? toBusiness(businessDoc[0]) : null); setMembers(memberDocs.map(toWorkspaceMembership)); setRequests(requestDocs.map(toServiceRequest)); setAssignments(assignmentDocs.map(toPartnerAssignment)); setBusinessRecords(records); } catch { toast.error("Business records could not be loaded."); } finally { if (active) setLoading(false); } })(); return () => { active = false; }; }, [profile?.activeBusinessId, profile?.userId, section]);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!profile?.userId) return;
+      setLoading(true);
+      try {
+        const own = (await fetchMembershipsForUser(profile.userId)).map(
+          toWorkspaceMembership,
+        );
+        const selected =
+          own.find((item) => item.businessId === profile.activeBusinessId) ??
+          own[0];
+        if (!selected) return;
+        const table = sectionTables[section];
+        const [businessDoc, memberDocs, requestDocs, assignmentDocs, records] =
+          await Promise.all([
+            fetchBusinessesByIds([selected.businessId]),
+            fetchBusinessMemberships(selected.businessId),
+            fetchBusinessRequests(selected.businessId),
+            fetchAssignments({ businessId: selected.businessId }),
+            table
+              ? fetchBusinessRecords(
+                  table,
+                  selected.businessId,
+                  100,
+                  profile.userId,
+                ).catch(() => [])
+              : Promise.resolve([]),
+          ]);
+        if (!active) return;
+        setMembership(selected);
+        setBusiness(businessDoc[0] ? toBusiness(businessDoc[0]) : null);
+        setMembers(memberDocs.map(toWorkspaceMembership));
+        setRequests(requestDocs.map(toServiceRequest));
+        setAssignments(assignmentDocs.map(toPartnerAssignment));
+        setBusinessRecords(records);
+      } catch {
+        toast.error("Business records could not be loaded.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [profile?.activeBusinessId, profile?.userId, section]);
 
   if (!meta) return null;
-  if (loading) return <div className="grid min-h-[65vh] place-items-center"><Loader2 className="size-7 animate-spin text-blue-600" /></div>;
+  if (loading)
+    return (
+      <div className="grid min-h-[65vh] place-items-center">
+        <Loader2 className="size-7 animate-spin text-blue-600" />
+      </div>
+    );
   if (!membership || !can(membership, meta.permission)) return <AccessDenied />;
-  if (section === "team") return <TeamPage business={business} viewer={membership} members={members} onChange={setMembers} />;
+  if (section === "team")
+    return (
+      <TeamPage
+        business={business}
+        viewer={membership}
+        members={members}
+        onChange={setMembers}
+      />
+    );
   if (section === "roles") return <RolesPage viewer={membership} />;
-  if (section === "departments") return <DepartmentsPage business={business} members={members} />;
+  if (section === "departments")
+    return <DepartmentsPage business={business} members={members} />;
+
+  const commercialType: Partial<Record<string, CommercialDocumentType>> = {
+    quotations: "quotation",
+    invoices: "tax_invoice",
+    "proforma-invoices": "proforma_invoice",
+    "purchase-orders": "purchase_order",
+    "work-orders": "work_order",
+  };
+  if (commercialType[section])
+    return (
+      <CommercialDocuments
+        type={commercialType[section]!}
+        business={business}
+        membership={membership}
+        profile={profile}
+        records={businessRecords}
+        onCreated={(record) =>
+          setBusinessRecords((current) => [record, ...current])
+        }
+      />
+    );
 
   const value = assignments.reduce((sum, item) => sum + item.earnings, 0);
-  if (section === "business") return <div className="space-y-5"><Header title={meta.title} description={meta.description} business={business?.name}/><section className="rounded-lg border border-slate-200 bg-white"><BusinessDetails business={business} membership={membership}/></section></div>;
+  if (section === "business")
+    return (
+      <div className="space-y-5">
+        <Header
+          title={meta.title}
+          description={meta.description}
+          business={business?.name}
+        />
+        <section className="rounded-lg border border-slate-200 bg-white">
+          <BusinessDetails business={business} membership={membership} />
+        </section>
+      </div>
+    );
 
   const recordConfig = recordSections[section];
-  if (recordConfig) return <RecordPage meta={meta} config={recordConfig} business={business} membership={membership} profile={profile} records={businessRecords} members={members} assignmentsValue={value} onCreated={(record) => setBusinessRecords((current) => [record, ...current])}/>;
+  if (recordConfig)
+    return (
+      <RecordPage
+        meta={meta}
+        config={recordConfig}
+        business={business}
+        membership={membership}
+        profile={profile}
+        records={businessRecords}
+        members={members}
+        assignmentsValue={value}
+        onCreated={(record) =>
+          setBusinessRecords((current) => [record, ...current])
+        }
+      />
+    );
 
-  if (section === "clients") return <RequestDirectory meta={meta} business={business} rows={uniqueBy(requests, (item) => item.customerId || item.customerPhone)} mode="client" />;
-  if (section === "sites") return <RequestDirectory meta={meta} business={business} rows={uniqueBy(requests.filter((item) => item.siteAddress), (item) => item.siteAddress)} mode="site" />;
-  if (section === "payments") return <DerivedPage meta={meta} business={business} icon={CircleDollarSign} empty="Payments will appear when invoices receive a payment." />;
-  if (section === "vendors") return <PartnerDirectory meta={meta} business={business} members={members.filter((item) => item.role === "partner")} />;
-  return <DerivedPage meta={meta} business={business} icon={FileText} empty={`No ${meta.title.toLowerCase()} records have been added.`} />;
+  if (section === "clients")
+    return (
+      <RequestDirectory
+        meta={meta}
+        business={business}
+        rows={uniqueBy(
+          requests,
+          (item) => item.customerId || item.customerPhone,
+        )}
+        mode="client"
+      />
+    );
+  if (section === "sites")
+    return (
+      <RequestDirectory
+        meta={meta}
+        business={business}
+        rows={uniqueBy(
+          requests.filter((item) => item.siteAddress),
+          (item) => item.siteAddress,
+        )}
+        mode="site"
+      />
+    );
+  if (section === "payments")
+    return (
+      <DerivedPage
+        meta={meta}
+        business={business}
+        icon={CircleDollarSign}
+        empty="Payments will appear when invoices receive a payment."
+      />
+    );
+  if (section === "vendors")
+    return (
+      <PartnerDirectory
+        meta={meta}
+        business={business}
+        members={members.filter((item) => item.role === "partner")}
+      />
+    );
+  return (
+    <DerivedPage
+      meta={meta}
+      business={business}
+      icon={FileText}
+      empty={`No ${meta.title.toLowerCase()} records have been added.`}
+    />
+  );
 }
 
-function RecordPage({ meta, config, business, membership, profile, records, members, assignmentsValue, onCreated }: { meta: typeof sectionMeta[string]; config: RecordSection; business: Business | null; membership: WorkspaceMembership; profile: any; records: any[]; members: WorkspaceMembership[]; assignmentsValue: number; onCreated: (record: any) => void }) {
+function RecordPage({
+  meta,
+  config,
+  business,
+  membership,
+  profile,
+  records,
+  members,
+  assignmentsValue,
+  onCreated,
+}: {
+  meta: (typeof sectionMeta)[string];
+  config: RecordSection;
+  business: Business | null;
+  membership: WorkspaceMembership;
+  profile: any;
+  records: any[];
+  members: WorkspaceMembership[];
+  assignmentsValue: number;
+  onCreated: (record: any) => void;
+}) {
   const [open, setOpen] = useState(false);
-  const completed = records.filter((row) => ["completed", "paid", "closed"].includes(readString(row, "status"))).length;
-  const total = records.reduce((sum, row) => sum + (config.amountKey ? Number(row[config.amountKey] || 0) : 0), 0);
+  const completed = records.filter((row) =>
+    ["completed", "paid", "closed"].includes(readString(row, "status")),
+  ).length;
+  const total = records.reduce(
+    (sum, row) =>
+      sum + (config.amountKey ? Number(row[config.amountKey] || 0) : 0),
+    0,
+  );
   const canManage = can(membership, config.manage);
-  return <div className="space-y-5">
-    <Header title={meta.title} description={meta.description} business={business?.name} action={canManage ? <button onClick={() => setOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700"><Plus size={17}/>{config.action}</button> : undefined}/>
-    <section className="grid gap-3 sm:grid-cols-3"><Metric label="Total" value={records.length} icon={ClipboardList}/><Metric label="Completed" value={completed} icon={CheckCircle2}/><Metric label={config.amountKey ? "Recorded value" : "Team members"} value={config.amountKey ? `₹${total.toLocaleString("en-IN")}` : members.length} icon={config.amountKey ? IndianRupee : Users}/></section>
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white"><div className="grid grid-cols-[minmax(0,1fr)_150px_130px] border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase text-slate-500"><span>{meta.title}</span><span>Status</span><span>{config.amountKey ? "Value" : "Date"}</span></div>{records.length ? records.map((record) => <RecordRow key={record.$id} record={record} config={config}/>) : <Empty title={`No ${meta.title.toLowerCase()} yet`} />}</section>
-    {open ? config.table === "documents" ? <UploadDocumentDialog business={business} profile={profile} onClose={() => setOpen(false)} onCreated={onCreated}/> : <CreateRecordDialog config={config} business={business} profile={profile} onClose={() => setOpen(false)} onCreated={onCreated}/> : null}
-  </div>;
+  return (
+    <div className="space-y-5">
+      <Header
+        title={meta.title}
+        description={meta.description}
+        business={business?.name}
+        action={
+          canManage ? (
+            <button
+              onClick={() => setOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700"
+            >
+              <Plus size={17} />
+              {config.action}
+            </button>
+          ) : undefined
+        }
+      />
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Metric label="Total" value={records.length} icon={ClipboardList} />
+        <Metric label="Completed" value={completed} icon={CheckCircle2} />
+        <Metric
+          label={config.amountKey ? "Recorded value" : "Team members"}
+          value={
+            config.amountKey
+              ? `₹${total.toLocaleString("en-IN")}`
+              : members.length
+          }
+          icon={config.amountKey ? IndianRupee : Users}
+        />
+      </section>
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="grid grid-cols-[minmax(0,1fr)_150px_130px] border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase text-slate-500">
+          <span>{meta.title}</span>
+          <span>Status</span>
+          <span>{config.amountKey ? "Value" : "Date"}</span>
+        </div>
+        {records.length ? (
+          records.map((record) => (
+            <RecordRow key={record.$id} record={record} config={config} />
+          ))
+        ) : (
+          <Empty title={`No ${meta.title.toLowerCase()} yet`} />
+        )}
+      </section>
+      {open ? (
+        config.table === "documents" ? (
+          <UploadDocumentDialog
+            business={business}
+            profile={profile}
+            onClose={() => setOpen(false)}
+            onCreated={onCreated}
+          />
+        ) : (
+          <CreateRecordDialog
+            config={config}
+            business={business}
+            profile={profile}
+            onClose={() => setOpen(false)}
+            onCreated={onCreated}
+          />
+        )
+      ) : null}
+    </div>
+  );
 }
 
-function UploadDocumentDialog({ business, profile, onClose, onCreated }: { business: Business | null; profile: any; onClose: () => void; onCreated: (record: any) => void }) {
-  const [title, setTitle] = useState(""); const [category, setCategory] = useState("document"); const [file, setFile] = useState<File | null>(null); const [saving, setSaving] = useState(false);
-  async function submit(event: React.FormEvent) { event.preventDefault(); if (!business || !profile?.userId || !file) return; setSaving(true); try { const form = new FormData(); form.set("businessId", business.$id); form.set("userId", profile.userId); form.set("userName", profile.name || ""); form.set("title", title); form.set("category", category); form.set("file", file); const response = await fetch("/api/business-records", { method: "POST", body: form }); const result = await response.json(); if (!response.ok) throw new Error(result.error); onCreated(result.document); toast.success("Document uploaded."); onClose(); } catch (error: any) { toast.error(error?.message || "Upload failed."); } finally { setSaving(false); } }
-  return <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4"><form onSubmit={submit} className="w-full max-w-lg rounded-lg bg-white shadow-xl"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><h2 className="text-lg font-bold">Upload document</h2><button type="button" onClick={onClose} className="text-sm font-bold text-slate-600">Close</button></div><div className="space-y-4 p-5"><label className="block"><span className="text-xs font-bold text-slate-700">Title</span><input required value={title} onChange={(e) => setTitle(e.target.value)} className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm"/></label><label className="block"><span className="text-xs font-bold text-slate-700">Category</span><select value={category} onChange={(e) => setCategory(e.target.value)} className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm"><option value="document">Document</option><option value="site_report">Site report</option><option value="quotation">Quotation</option><option value="invoice">Invoice</option><option value="photo">Photo</option><option value="video">Video</option></select></label><label className="block"><span className="text-xs font-bold text-slate-700">File</span><input required type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="mt-2 block w-full rounded-md border border-slate-300 p-3 text-sm"/></label></div><div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4"><button type="button" onClick={onClose} className="h-10 rounded-md border border-slate-300 px-4 text-sm font-bold">Cancel</button><button disabled={saving || !file} className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white disabled:opacity-60">{saving ? <Loader2 className="size-4 animate-spin"/> : <Plus size={16}/>}Upload</button></div></form></div>;
+function UploadDocumentDialog({
+  business,
+  profile,
+  onClose,
+  onCreated,
+}: {
+  business: Business | null;
+  profile: any;
+  onClose: () => void;
+  onCreated: (record: any) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("document");
+  const [file, setFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!business || !profile?.userId || !file) return;
+    setSaving(true);
+    try {
+      const form = new FormData();
+      form.set("businessId", business.$id);
+      form.set("userId", profile.userId);
+      form.set("userName", profile.name || "");
+      form.set("title", title);
+      form.set("category", category);
+      form.set("file", file);
+      const response = await fetch("/api/business-records", {
+        method: "POST",
+        body: form,
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      onCreated(result.document);
+      toast.success("Document uploaded.");
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.message || "Upload failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4">
+      <form
+        onSubmit={submit}
+        className="w-full max-w-lg rounded-lg bg-white shadow-xl"
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <h2 className="text-lg font-bold">Upload document</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm font-bold text-slate-600"
+          >
+            Close
+          </button>
+        </div>
+        <div className="space-y-4 p-5">
+          <label className="block">
+            <span className="text-xs font-bold text-slate-700">Title</span>
+            <input
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-700">Category</span>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm"
+            >
+              <option value="document">Document</option>
+              <option value="site_report">Site report</option>
+              <option value="quotation">Quotation</option>
+              <option value="invoice">Invoice</option>
+              <option value="photo">Photo</option>
+              <option value="video">Video</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold text-slate-700">File</span>
+            <input
+              required
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="mt-2 block w-full rounded-md border border-slate-300 p-3 text-sm"
+            />
+          </label>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-md border border-slate-300 px-4 text-sm font-bold"
+          >
+            Cancel
+          </button>
+          <button
+            disabled={saving || !file}
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white disabled:opacity-60"
+          >
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Plus size={16} />
+            )}
+            Upload
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 function RecordRow({ record, config }: { record: any; config: RecordSection }) {
-  const title = config.titleKeys.map((key) => readString(record, key)).find(Boolean) || "Untitled record";
-  const detail = config.detailKeys.map((key) => readString(record, key)).filter(Boolean).join(" · ") || recordCreator(record).name || "";
-  const date = config.dateKeys?.map((key) => readString(record, key)).find(Boolean) || record.$createdAt;
-  return <div className="grid grid-cols-[minmax(0,1fr)_150px_130px] items-center border-b border-slate-100 px-5 py-4 last:border-0"><div className="min-w-0"><p className="truncate text-sm font-semibold text-slate-950">{title}</p><p className="mt-1 truncate text-xs text-slate-500">{detail}</p></div><span className="w-fit rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold capitalize text-blue-700">{(readString(record, "status") || "draft").replaceAll("_", " ")}</span><p className="text-xs font-semibold text-slate-600">{config.amountKey ? `₹${Number(record[config.amountKey] || 0).toLocaleString("en-IN")}` : date ? new Date(date).toLocaleDateString("en-IN") : "—"}</p></div>;
+  const title =
+    config.titleKeys.map((key) => readString(record, key)).find(Boolean) ||
+    "Untitled record";
+  const detail =
+    config.detailKeys
+      .map((key) => readString(record, key))
+      .filter(Boolean)
+      .join(" · ") ||
+    recordCreator(record).name ||
+    "";
+  const date =
+    config.dateKeys?.map((key) => readString(record, key)).find(Boolean) ||
+    record.$createdAt;
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_150px_130px] items-center border-b border-slate-100 px-5 py-4 last:border-0">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-slate-950">{title}</p>
+        <p className="mt-1 truncate text-xs text-slate-500">{detail}</p>
+      </div>
+      <span className="w-fit rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold capitalize text-blue-700">
+        {(readString(record, "status") || "draft").replaceAll("_", " ")}
+      </span>
+      <p className="text-xs font-semibold text-slate-600">
+        {config.amountKey
+          ? `₹${Number(record[config.amountKey] || 0).toLocaleString("en-IN")}`
+          : date
+            ? new Date(date).toLocaleDateString("en-IN")
+            : "—"}
+      </p>
+    </div>
+  );
 }
 
-function CreateRecordDialog({ config, business, profile, onClose, onCreated }: { config: RecordSection; business: Business | null; profile: any; onClose: () => void; onCreated: (record: any) => void }) {
-  const [values, setValues] = useState<Record<string,string>>({}); const [saving, setSaving] = useState(false);
-  async function submit(event: React.FormEvent) { event.preventDefault(); if (!business || !profile?.userId) return; setSaving(true); try { const now = new Date().toISOString(); const data: Record<string, unknown> = { businessId: business.$id, createdBy: profile.userId, createdByName: profile.name || "", status: "draft", createdAt: now, updatedAt: now }; for (const field of config.fields) { const value = values[field.key]?.trim(); if (!value) continue; data[field.key] = field.type === "number" ? Number(value) : field.type === "date" ? new Date(`${value}T00:00:00`).toISOString() : value; } if (config.table === "quotations") { delete data.createdBy; delete data.createdByName; data.businessName = business.name; data.createdByAdminId = profile.userId; data.createdByAdminName = profile.name || ""; const subtotal = Number(data.subtotal || 0); const gst = Number(data.gstPercentage || 0); data.gstAmount = subtotal * gst / 100; data.totalAmount = subtotal + Number(data.gstAmount); } if (config.table === "invoices") { data.businessName = business.name; data.totalAmount = Number(data.subtotal || 0) + Number(data.taxAmount || 0); data.paidAmount = 0; } const table = config.table === "amcContracts" ? "amc_contracts" : config.table; const response = await fetch("/api/business-records", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ table, businessId: business.$id, userId: profile.userId, data }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); onCreated(result.document); toast.success("Record added."); onClose(); } catch (error: any) { toast.error(error?.message || "Record could not be added."); } finally { setSaving(false); } }
-  return <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4"><form onSubmit={submit} className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white shadow-xl"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><h2 className="text-lg font-bold text-slate-950">{config.action}</h2><button type="button" onClick={onClose} className="text-sm font-bold text-slate-600">Close</button></div><div className="grid gap-4 p-5 sm:grid-cols-2">{config.fields.map((field) => <label key={field.key} className={field.type === "textarea" ? "sm:col-span-2" : ""}><span className="text-xs font-bold text-slate-700">{field.label}</span>{field.type === "textarea" ? <textarea required={field.required} value={values[field.key] || ""} onChange={(e) => setValues({...values,[field.key]:e.target.value})} className="mt-2 min-h-24 w-full rounded-md border border-slate-300 p-3 text-sm"/> : field.type === "select" ? <select value={values[field.key] || field.options?.[0]} onChange={(e) => setValues({...values,[field.key]:e.target.value})} className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm">{field.options?.map((option) => <option key={option}>{option}</option>)}</select> : <input type={field.type || "text"} required={field.required} value={values[field.key] || ""} onChange={(e) => setValues({...values,[field.key]:e.target.value})} className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm"/>}</label>)}</div><div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4"><button type="button" onClick={onClose} className="h-10 rounded-md border border-slate-300 px-4 text-sm font-bold">Cancel</button><button disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white disabled:opacity-60">{saving ? <Loader2 className="size-4 animate-spin"/> : <Plus size={16}/>}Add</button></div></form></div>;
+function CreateRecordDialog({
+  config,
+  business,
+  profile,
+  onClose,
+  onCreated,
+}: {
+  config: RecordSection;
+  business: Business | null;
+  profile: any;
+  onClose: () => void;
+  onCreated: (record: any) => void;
+}) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!business || !profile?.userId) return;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const data: Record<string, unknown> = {
+        businessId: business.$id,
+        createdBy: profile.userId,
+        createdByName: profile.name || "",
+        status: "draft",
+        createdAt: now,
+        updatedAt: now,
+      };
+      for (const field of config.fields) {
+        const value =
+          values[field.key]?.trim() ||
+          (field.type === "select" ? field.options?.[0] : "");
+        if (!value) continue;
+        data[field.key] =
+          field.type === "number"
+            ? Number(value)
+            : field.type === "date"
+              ? new Date(`${value}T00:00:00`).toISOString()
+              : value;
+      }
+      if (config.table === "quotations") {
+        delete data.createdBy;
+        delete data.createdByName;
+        data.businessName = business.name;
+        data.createdByAdminId = profile.userId;
+        data.createdByAdminName = profile.name || "";
+        const subtotal = Number(data.subtotal || 0);
+        const gst = Number(data.gstPercentage || 0);
+        data.gstAmount = (subtotal * gst) / 100;
+        data.totalAmount = subtotal + Number(data.gstAmount);
+      }
+      if (config.table === "invoices") {
+        data.businessName = business.name;
+        data.totalAmount =
+          Number(data.subtotal || 0) + Number(data.taxAmount || 0);
+        data.paidAmount = 0;
+      }
+      if (config.table === "documentTemplates") {
+        delete data.createdByName;
+        delete data.status;
+        data.isDefault = false;
+      }
+      const table =
+        config.table === "amcContracts"
+          ? "amc_contracts"
+          : config.table === "documentTemplates"
+            ? "document_templates"
+            : config.table;
+      const response = await fetch("/api/business-records", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          table,
+          businessId: business.$id,
+          userId: profile.userId,
+          data,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      onCreated(result.document);
+      toast.success("Record added.");
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.message || "Record could not be added.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4">
+      <form
+        onSubmit={submit}
+        className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white shadow-xl"
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <h2 className="text-lg font-bold text-slate-950">{config.action}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm font-bold text-slate-600"
+          >
+            Close
+          </button>
+        </div>
+        <div className="grid gap-4 p-5 sm:grid-cols-2">
+          {config.fields.map((field) => (
+            <label
+              key={field.key}
+              className={field.type === "textarea" ? "sm:col-span-2" : ""}
+            >
+              <span className="text-xs font-bold text-slate-700">
+                {field.label}
+              </span>
+              {field.type === "textarea" ? (
+                <textarea
+                  required={field.required}
+                  value={values[field.key] || ""}
+                  onChange={(e) =>
+                    setValues({ ...values, [field.key]: e.target.value })
+                  }
+                  className="mt-2 min-h-24 w-full rounded-md border border-slate-300 p-3 text-sm"
+                />
+              ) : field.type === "select" ? (
+                <select
+                  value={values[field.key] || field.options?.[0]}
+                  onChange={(e) =>
+                    setValues({ ...values, [field.key]: e.target.value })
+                  }
+                  className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm"
+                >
+                  {field.options?.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={field.type || "text"}
+                  required={field.required}
+                  value={values[field.key] || ""}
+                  onChange={(e) =>
+                    setValues({ ...values, [field.key]: e.target.value })
+                  }
+                  className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3 text-sm"
+                />
+              )}
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-md border border-slate-300 px-4 text-sm font-bold"
+          >
+            Cancel
+          </button>
+          <button
+            disabled={saving}
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white disabled:opacity-60"
+          >
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Plus size={16} />
+            )}
+            Add
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
-function RequestDirectory({ meta, business, rows, mode }: { meta: typeof sectionMeta[string]; business: Business | null; rows: ServiceRequest[]; mode: "client" | "site" }) { return <div className="space-y-5"><Header title={meta.title} description={meta.description} business={business?.name}/><section className="overflow-hidden rounded-lg border border-slate-200 bg-white">{rows.length ? rows.map((row) => <div key={row.$id} className="flex items-center gap-4 border-b border-slate-100 px-5 py-4 last:border-0"><div className="grid size-9 place-items-center rounded-md bg-blue-50 text-blue-600">{mode === "site" ? <MapPin size={17}/> : <Users size={17}/>}</div><div><p className="text-sm font-bold">{mode === "site" ? row.siteAddress : row.customerName || row.customerId || "Client"}</p><p className="mt-1 text-xs text-slate-500">{mode === "site" ? row.title : row.customerPhone || row.siteAddress}</p></div></div>) : <Empty title={`No ${meta.title.toLowerCase()} yet`}/>}</section></div>; }
-function PartnerDirectory({ meta, business, members }: { meta: typeof sectionMeta[string]; business: Business | null; members: WorkspaceMembership[] }) { return <div className="space-y-5"><Header title={meta.title} description={meta.description} business={business?.name}/><section className="rounded-lg border border-slate-200 bg-white">{members.length ? members.map((member) => <div key={member.$id} className="border-b border-slate-100 px-5 py-4 last:border-0"><p className="text-sm font-bold">{member.memberName || member.userId}</p><p className="mt-1 text-xs text-slate-500">Active partner access</p></div>) : <Empty title="No vendors or suppliers linked"/>}</section></div>; }
-function DepartmentsPage({ business, members }: { business: Business | null; members: WorkspaceMembership[] }) { const groups = Object.entries(roleDefinitions).map(([key, value]) => ({ name: value.label, members: members.filter((member) => member.role === key) })).filter((group) => group.members.length); return <div className="space-y-5"><Header title="Departments" description="Team coverage grouped by organization responsibility." business={business?.name}/><section className="grid gap-3 md:grid-cols-2">{groups.length ? groups.map((group) => <article key={group.name} className="rounded-lg border border-slate-200 bg-white p-5"><p className="font-bold">{group.name}</p><p className="mt-2 text-2xl font-bold text-blue-600">{group.members.length}</p><p className="mt-1 text-xs text-slate-500">active team members</p></article>) : <Empty title="No departments have members"/>}</section></div>; }
-function DerivedPage({ meta, business, icon: Icon, empty }: { meta: typeof sectionMeta[string]; business: Business | null; icon: typeof FileText; empty: string }) { return <div className="space-y-5"><Header title={meta.title} description={meta.description} business={business?.name}/><section className="rounded-lg border border-slate-200 bg-white py-16 text-center"><Icon className="mx-auto text-slate-300"/><p className="mt-3 text-sm font-bold text-slate-800">{empty}</p></section></div>; }
-
-function TeamPage({ business, viewer, members, onChange }: { business: Business | null; viewer: WorkspaceMembership; members: WorkspaceMembership[]; onChange: (members: WorkspaceMembership[]) => void }) {
-  const [open, setOpen] = useState(false); const [query, setQuery] = useState(""); const [results, setResults] = useState<any[]>([]); const [role, setRole] = useState<WorkspaceMembership["role"]>("technician"); const manager = can(viewer, "team.manage");
-  useEffect(() => { const timer = setTimeout(async () => setResults(await findWorkspaceUsers(query)), 350); return () => clearTimeout(timer); }, [query]);
-  async function add(user: any) { if (!business) return; try { const definition = roleDefinitions[role]; const doc = await addWorkspaceMember({ businessId: business.$id, userId: readString(user, "user_id") || user.$id, role, permissions: definition.permissions, memberName: readString(user, "name") || readString(user, "customerId") || "Team member", memberPhone: readString(user, "phone") }); onChange([...members.filter((item) => item.userId !== (readString(user, "user_id") || user.$id)), toWorkspaceMembership(doc)]); setOpen(false); setQuery(""); toast.success("Workspace access added."); } catch (error: any) { toast.error(error?.message || "Member could not be added."); } }
-  async function changeRole(member: WorkspaceMembership, next: WorkspaceMembership["role"]) { try { const updated = await updateWorkspaceMember(member.$id, { role: next, permissions: roleDefinitions[next].permissions }); onChange(members.map((item) => item.$id === member.$id ? toWorkspaceMembership(updated) : item)); toast.success("Role updated."); } catch (error: any) { toast.error(error?.message || "Role could not be updated."); } }
-  return <div className="space-y-5"><Header title="Partners & teams" description="Add existing AMC MEP users and control what each person can access." business={business?.name} action={manager ? <button onClick={() => setOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white"><Plus size={17}/>Add member</button> : undefined}/><section className="overflow-hidden rounded-lg border border-slate-200 bg-white"><div className="grid grid-cols-[minmax(0,1fr)_180px_120px] border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold uppercase text-slate-500"><span>Member</span><span>Role</span><span>Status</span></div>{members.map((member) => <div key={member.$id} className="grid grid-cols-[minmax(0,1fr)_180px_120px] items-center border-b border-slate-100 px-5 py-4 last:border-0"><div><p className="font-semibold text-slate-900">{member.memberName || `Member ${member.userId.slice(-5)}`}</p><p className="mt-1 text-xs text-slate-500">{member.memberPhone || member.userId}</p></div>{manager && member.role !== "owner" ? <select value={member.role} onChange={(event) => changeRole(member, event.target.value as WorkspaceMembership["role"])} className="h-9 rounded-md border border-slate-200 px-2 text-xs font-semibold">{Object.entries(roleDefinitions).filter(([key]) => key !== "owner").map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select> : <span className="text-sm font-semibold">{roleDefinitions[member.role]?.label || member.role}</span>}<span className="text-xs font-bold capitalize text-emerald-700">{member.status || "active"}</span></div>)}</section>{open ? <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 p-4"><div className="w-full max-w-xl rounded-lg bg-white p-5 shadow-xl"><div className="flex items-start justify-between"><div><h2 className="text-xl font-bold">Add a workspace member</h2><p className="mt-1 text-sm text-slate-500">Search registered users by name, email, phone, or public ID.</p></div><button onClick={() => setOpen(false)} className="text-sm font-bold">Close</button></div><label className="mt-5 block text-xs font-bold text-slate-700">Organization role<select value={role} onChange={(e) => setRole(e.target.value as WorkspaceMembership["role"])} className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3">{Object.entries(roleDefinitions).filter(([key]) => key !== "owner").map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select></label><div className="relative mt-4"><Search className="absolute left-3 top-3 size-4 text-slate-400"/><input value={query} onChange={(e) => setQuery(e.target.value)} className="h-11 w-full rounded-md border border-slate-300 pl-10 pr-3" placeholder="Search AMC MEP users"/></div><div className="mt-3 max-h-72 divide-y overflow-auto">{results.map((user) => <button key={user.$id} onClick={() => add(user)} className="flex w-full items-center justify-between px-2 py-3 text-left hover:bg-slate-50"><div><p className="text-sm font-bold">{readString(user,"name") || readString(user,"customerId")}</p><p className="text-xs text-slate-500">{readString(user,"email") || readString(user,"phone") || readString(user,"customerId")}</p></div><ArrowRight size={17}/></button>)}</div></div></div> : null}</div>;
+function RequestDirectory({
+  meta,
+  business,
+  rows,
+  mode,
+}: {
+  meta: (typeof sectionMeta)[string];
+  business: Business | null;
+  rows: ServiceRequest[];
+  mode: "client" | "site";
+}) {
+  return (
+    <div className="space-y-5">
+      <Header
+        title={meta.title}
+        description={meta.description}
+        business={business?.name}
+      />
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        {rows.length ? (
+          rows.map((row) => (
+            <div
+              key={row.$id}
+              className="flex items-center gap-4 border-b border-slate-100 px-5 py-4 last:border-0"
+            >
+              <div className="grid size-9 place-items-center rounded-md bg-blue-50 text-blue-600">
+                {mode === "site" ? <MapPin size={17} /> : <Users size={17} />}
+              </div>
+              <div>
+                <p className="text-sm font-bold">
+                  {mode === "site"
+                    ? row.siteAddress
+                    : row.customerName || row.customerId || "Client"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {mode === "site"
+                    ? row.title
+                    : row.customerPhone || row.siteAddress}
+                </p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <Empty title={`No ${meta.title.toLowerCase()} yet`} />
+        )}
+      </section>
+    </div>
+  );
+}
+function PartnerDirectory({
+  meta,
+  business,
+  members,
+}: {
+  meta: (typeof sectionMeta)[string];
+  business: Business | null;
+  members: WorkspaceMembership[];
+}) {
+  return (
+    <div className="space-y-5">
+      <Header
+        title={meta.title}
+        description={meta.description}
+        business={business?.name}
+      />
+      <section className="rounded-lg border border-slate-200 bg-white">
+        {members.length ? (
+          members.map((member) => (
+            <div
+              key={member.$id}
+              className="border-b border-slate-100 px-5 py-4 last:border-0"
+            >
+              <p className="text-sm font-bold">
+                {member.memberName || member.userId}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Active partner access
+              </p>
+            </div>
+          ))
+        ) : (
+          <Empty title="No vendors or suppliers linked" />
+        )}
+      </section>
+    </div>
+  );
+}
+function DepartmentsPage({
+  business,
+  members,
+}: {
+  business: Business | null;
+  members: WorkspaceMembership[];
+}) {
+  const groups = Object.entries(roleDefinitions)
+    .map(([key, value]) => ({
+      name: value.label,
+      members: members.filter((member) => member.role === key),
+    }))
+    .filter((group) => group.members.length);
+  return (
+    <div className="space-y-5">
+      <Header
+        title="Departments"
+        description="Team coverage grouped by organization responsibility."
+        business={business?.name}
+      />
+      <section className="grid gap-3 md:grid-cols-2">
+        {groups.length ? (
+          groups.map((group) => (
+            <article
+              key={group.name}
+              className="rounded-lg border border-slate-200 bg-white p-5"
+            >
+              <p className="font-bold">{group.name}</p>
+              <p className="mt-2 text-2xl font-bold text-blue-600">
+                {group.members.length}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">active team members</p>
+            </article>
+          ))
+        ) : (
+          <Empty title="No departments have members" />
+        )}
+      </section>
+    </div>
+  );
+}
+function DerivedPage({
+  meta,
+  business,
+  icon: Icon,
+  empty,
+}: {
+  meta: (typeof sectionMeta)[string];
+  business: Business | null;
+  icon: typeof FileText;
+  empty: string;
+}) {
+  return (
+    <div className="space-y-5">
+      <Header
+        title={meta.title}
+        description={meta.description}
+        business={business?.name}
+      />
+      <section className="rounded-lg border border-slate-200 bg-white py-16 text-center">
+        <Icon className="mx-auto text-slate-300" />
+        <p className="mt-3 text-sm font-bold text-slate-800">{empty}</p>
+      </section>
+    </div>
+  );
 }
 
-function RolesPage({ viewer }: { viewer: WorkspaceMembership }) { return <div className="space-y-5"><Header title="Roles & permissions" description="Standard organization roles keep access consistent and understandable."/><section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{Object.entries(roleDefinitions).map(([key, role]) => <article key={key} className="rounded-lg border border-slate-200 bg-white p-5"><h2 className="font-bold text-slate-950">{role.label}</h2><p className="mt-2 min-h-10 text-xs leading-5 text-slate-500">{role.description}</p><p className="mt-4 text-xs font-bold text-blue-700">{role.permissions.length} capabilities</p><div className="mt-3 flex flex-wrap gap-1.5">{role.permissions.slice(0,6).map((permission) => <span key={permission} className="rounded bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600">{permission.split(".")[0]}</span>)}</div></article>)}</section>{!can(viewer,"roles.manage") ? <p className="text-xs text-slate-500">Your role can view this policy but cannot change team access.</p> : null}</div>; }
-function Header({ title, description, business, action }: { title:string; description:string; business?:string; action?:React.ReactNode }) { return <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase text-blue-600">{business || "Workspace"}</p><h1 className="mt-2 text-3xl font-bold text-slate-950">{title}</h1><p className="mt-2 text-sm text-slate-600">{description}</p></div>{action}</header>; }
-function Metric({ label,value,icon:Icon }: {label:string;value:string|number;icon:typeof Users}) { return <article className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4"><div><p className="text-xs font-semibold text-slate-500">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p></div><div className="grid size-10 place-items-center rounded-md bg-blue-50 text-blue-600"><Icon size={19}/></div></article>; }
-function BusinessDetails({ business, membership }: { business: Business|null; membership:WorkspaceMembership }) { return <div className="grid gap-5 p-5 md:grid-cols-2"><Info label="Business" value={business?.name}/><Info label="Location" value={[business?.city,business?.state].filter(Boolean).join(", ")}/><Info label="Contact" value={business?.phone || business?.email}/><Info label="Your access" value={roleDefinitions[membership.role]?.label}/></div>; }
-function Info({label,value}:{label:string;value?:string}) { return <div><p className="text-xs font-bold uppercase text-slate-400">{label}</p><p className="mt-2 text-sm font-semibold text-slate-900">{value || "Not added"}</p></div>; }
-function Empty({title}:{title:string}) { return <div className="py-16 text-center"><CheckCircle2 className="mx-auto text-slate-300"/><p className="mt-3 text-sm font-bold">{title}</p><p className="mt-1 text-xs text-slate-500">New live records will appear here automatically.</p></div>; }
-function AccessDenied() { return <div className="grid min-h-[65vh] place-items-center"><div className="max-w-md text-center"><ShieldAlert className="mx-auto text-amber-500" size={34}/><h1 className="mt-4 text-xl font-bold">Access is not enabled</h1><p className="mt-2 text-sm text-slate-500">Ask the business owner or workspace administrator to add this capability to your role.</p></div></div>; }
-function uniqueBy<T>(rows:T[], key:(row:T)=>string) { const map=new Map<string,T>(); rows.forEach((row,index)=>map.set(key(row)||String(index),row)); return [...map.values()]; }
+function TeamPage({
+  business,
+  viewer,
+  members,
+  onChange,
+}: {
+  business: Business | null;
+  viewer: WorkspaceMembership;
+  members: WorkspaceMembership[];
+  onChange: (members: WorkspaceMembership[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [role, setRole] = useState<WorkspaceMembership["role"]>("technician");
+  const manager = can(viewer, "team.manage");
+  useEffect(() => {
+    const timer = setTimeout(
+      async () => setResults(await findWorkspaceUsers(query)),
+      350,
+    );
+    return () => clearTimeout(timer);
+  }, [query]);
+  async function add(user: any) {
+    if (!business) return;
+    try {
+      const definition = roleDefinitions[role];
+      const doc = await addWorkspaceMember({
+        businessId: business.$id,
+        userId: readString(user, "user_id") || user.$id,
+        role,
+        permissions: definition.permissions,
+        memberName:
+          readString(user, "name") ||
+          readString(user, "customerId") ||
+          "Team member",
+        memberPhone: readString(user, "phone"),
+      });
+      onChange([
+        ...members.filter(
+          (item) => item.userId !== (readString(user, "user_id") || user.$id),
+        ),
+        toWorkspaceMembership(doc),
+      ]);
+      setOpen(false);
+      setQuery("");
+      toast.success("Workspace access added.");
+    } catch (error: any) {
+      toast.error(error?.message || "Member could not be added.");
+    }
+  }
+  async function changeRole(
+    member: WorkspaceMembership,
+    next: WorkspaceMembership["role"],
+  ) {
+    try {
+      const updated = await updateWorkspaceMember(member.$id, {
+        role: next,
+        permissions: roleDefinitions[next].permissions,
+      });
+      onChange(
+        members.map((item) =>
+          item.$id === member.$id ? toWorkspaceMembership(updated) : item,
+        ),
+      );
+      toast.success("Role updated.");
+    } catch (error: any) {
+      toast.error(error?.message || "Role could not be updated.");
+    }
+  }
+  return (
+    <div className="space-y-5">
+      <Header
+        title="Partners & teams"
+        description="Add existing AMC MEP users and control what each person can access."
+        business={business?.name}
+        action={
+          manager ? (
+            <button
+              onClick={() => setOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white"
+            >
+              <Plus size={17} />
+              Add member
+            </button>
+          ) : undefined
+        }
+      />
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="grid grid-cols-[minmax(0,1fr)_180px_120px] border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-bold uppercase text-slate-500">
+          <span>Member</span>
+          <span>Role</span>
+          <span>Status</span>
+        </div>
+        {members.map((member) => (
+          <div
+            key={member.$id}
+            className="grid grid-cols-[minmax(0,1fr)_180px_120px] items-center border-b border-slate-100 px-5 py-4 last:border-0"
+          >
+            <div>
+              <p className="font-semibold text-slate-900">
+                {member.memberName || `Member ${member.userId.slice(-5)}`}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {member.memberPhone || member.userId}
+              </p>
+            </div>
+            {manager && member.role !== "owner" ? (
+              <select
+                value={member.role}
+                onChange={(event) =>
+                  changeRole(
+                    member,
+                    event.target.value as WorkspaceMembership["role"],
+                  )
+                }
+                className="h-9 rounded-md border border-slate-200 px-2 text-xs font-semibold"
+              >
+                {Object.entries(roleDefinitions)
+                  .filter(([key]) => key !== "owner")
+                  .map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {value.label}
+                    </option>
+                  ))}
+              </select>
+            ) : (
+              <span className="text-sm font-semibold">
+                {roleDefinitions[member.role]?.label || member.role}
+              </span>
+            )}
+            <span className="text-xs font-bold capitalize text-emerald-700">
+              {member.status || "active"}
+            </span>
+          </div>
+        ))}
+      </section>
+      {open ? (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-xl rounded-lg bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-bold">Add a workspace member</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Search registered users by name, email, phone, or public ID.
+                </p>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-sm font-bold"
+              >
+                Close
+              </button>
+            </div>
+            <label className="mt-5 block text-xs font-bold text-slate-700">
+              Organization role
+              <select
+                value={role}
+                onChange={(e) =>
+                  setRole(e.target.value as WorkspaceMembership["role"])
+                }
+                className="mt-2 h-11 w-full rounded-md border border-slate-300 px-3"
+              >
+                {Object.entries(roleDefinitions)
+                  .filter(([key]) => key !== "owner")
+                  .map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {value.label}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-3 size-4 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="h-11 w-full rounded-md border border-slate-300 pl-10 pr-3"
+                placeholder="Search AMC MEP users"
+              />
+            </div>
+            <div className="mt-3 max-h-72 divide-y overflow-auto">
+              {results.map((user) => (
+                <button
+                  key={user.$id}
+                  onClick={() => add(user)}
+                  className="flex w-full items-center justify-between px-2 py-3 text-left hover:bg-slate-50"
+                >
+                  <div>
+                    <p className="text-sm font-bold">
+                      {readString(user, "name") ||
+                        readString(user, "customerId")}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {readString(user, "email") ||
+                        readString(user, "phone") ||
+                        readString(user, "customerId")}
+                    </p>
+                  </div>
+                  <ArrowRight size={17} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RolesPage({ viewer }: { viewer: WorkspaceMembership }) {
+  return (
+    <div className="space-y-5">
+      <Header
+        title="Roles & permissions"
+        description="Standard organization roles keep access consistent and understandable."
+      />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {Object.entries(roleDefinitions).map(([key, role]) => (
+          <article
+            key={key}
+            className="rounded-lg border border-slate-200 bg-white p-5"
+          >
+            <h2 className="font-bold text-slate-950">{role.label}</h2>
+            <p className="mt-2 min-h-10 text-xs leading-5 text-slate-500">
+              {role.description}
+            </p>
+            <p className="mt-4 text-xs font-bold text-blue-700">
+              {role.permissions.length} capabilities
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {role.permissions.slice(0, 6).map((permission) => (
+                <span
+                  key={permission}
+                  className="rounded bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600"
+                >
+                  {permission.split(".")[0]}
+                </span>
+              ))}
+            </div>
+          </article>
+        ))}
+      </section>
+      {!can(viewer, "roles.manage") ? (
+        <p className="text-xs text-slate-500">
+          Your role can view this policy but cannot change team access.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+function Header({
+  title,
+  description,
+  business,
+  action,
+}: {
+  title: string;
+  description: string;
+  business?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="text-xs font-bold uppercase text-blue-600">
+          {business || "Workspace"}
+        </p>
+        <h1 className="mt-2 text-3xl font-bold text-slate-950">{title}</h1>
+        <p className="mt-2 text-sm text-slate-600">{description}</p>
+      </div>
+      {action}
+    </header>
+  );
+}
+function Metric({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: typeof Users;
+}) {
+  return (
+    <article className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4">
+      <div>
+        <p className="text-xs font-semibold text-slate-500">{label}</p>
+        <p className="mt-2 text-2xl font-bold">{value}</p>
+      </div>
+      <div className="grid size-10 place-items-center rounded-md bg-blue-50 text-blue-600">
+        <Icon size={19} />
+      </div>
+    </article>
+  );
+}
+function BusinessDetails({
+  business,
+  membership,
+}: {
+  business: Business | null;
+  membership: WorkspaceMembership;
+}) {
+  return (
+    <div className="grid gap-5 p-5 md:grid-cols-2">
+      <Info label="Business" value={business?.name} />
+      <Info
+        label="Location"
+        value={[business?.city, business?.state].filter(Boolean).join(", ")}
+      />
+      <Info label="Contact" value={business?.phone || business?.email} />
+      <Info
+        label="Your access"
+        value={roleDefinitions[membership.role]?.label}
+      />
+    </div>
+  );
+}
+function Info({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase text-slate-400">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-900">
+        {value || "Not added"}
+      </p>
+    </div>
+  );
+}
+function Empty({ title }: { title: string }) {
+  return (
+    <div className="py-16 text-center">
+      <CheckCircle2 className="mx-auto text-slate-300" />
+      <p className="mt-3 text-sm font-bold">{title}</p>
+      <p className="mt-1 text-xs text-slate-500">
+        New live records will appear here automatically.
+      </p>
+    </div>
+  );
+}
+function AccessDenied() {
+  return (
+    <div className="grid min-h-[65vh] place-items-center">
+      <div className="max-w-md text-center">
+        <ShieldAlert className="mx-auto text-amber-500" size={34} />
+        <h1 className="mt-4 text-xl font-bold">Access is not enabled</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Ask the business owner or workspace administrator to add this
+          capability to your role.
+        </p>
+      </div>
+    </div>
+  );
+}
+function uniqueBy<T>(rows: T[], key: (row: T) => string) {
+  const map = new Map<string, T>();
+  rows.forEach((row, index) => map.set(key(row) || String(index), row));
+  return [...map.values()];
+}

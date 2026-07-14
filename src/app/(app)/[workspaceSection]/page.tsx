@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { WorkspaceSection } from "@/components/workspace/WorkspaceSection";
 
-const sections = new Set(["business","team","departments","roles","projects","sites","clients","vendors","tasks","services","invoices","payments","expenses","quotations","reports","documents","templates","files","business-settings","integrations","account-settings"]);
+const sections = new Set(["business","team","departments","roles","projects","sites","clients","vendors","tasks","services","invoices","proforma-invoices","payments","expenses","quotations","purchase-orders","work-orders","reports","documents","templates","files","business-settings","integrations","account-settings"]);
 
 export default async function WorkspaceSectionPage({ params }: { params: Promise<{ workspaceSection: string }> }) {
   const { workspaceSection } = await params;

@@ -6,7 +6,7 @@ const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ?? "680b2cfb0028
 const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ?? "680b2b830035595d7746";
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ?? "https://fra.cloud.appwrite.io/v1";
 const bucketId = "business_documents";
-const allowedTables = new Set(["projects", "tasks", "quotations", "invoices", "documents", "amc_contracts", "amc_visits"]);
+const allowedTables = new Set(["projects", "tasks", "quotations", "invoices", "documents", "amc_contracts", "amc_visits", "commercial_documents", "business_billing_profiles", "billing_parties", "document_templates", "business_items"]);
 
 function services() {
   const key = process.env.APPWRITE_API_KEY;
