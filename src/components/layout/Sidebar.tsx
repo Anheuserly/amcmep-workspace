@@ -136,6 +136,12 @@ const navigation = [
     label: "Finance",
     items: [
       {
+        label: "Items & services",
+        href: "/items",
+        icon: Boxes,
+        permission: "finance.view",
+      },
+      {
         label: "Invoices",
         href: "/invoices",
         icon: ReceiptIndianRupee,

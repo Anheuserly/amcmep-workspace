@@ -54,6 +54,7 @@ import {
 import { TeamManager } from "@/components/workspace/TeamManager";
 import { PartnerManager } from "@/components/workspace/PartnerManager";
 import { BillingSettings } from "@/components/workspace/BillingSettings";
+import { ItemCatalog } from "@/components/workspace/ItemCatalog";
 
 const sectionMeta: Record<
   string,
@@ -121,6 +122,11 @@ const sectionMeta: Record<
     description:
       "Maintenance and service delivery records connected to this business.",
     permission: "services.view",
+  },
+  items: {
+    title: "Items & services",
+    description: "Reusable products, materials, and service rates.",
+    permission: "finance.view",
   },
   invoices: {
     title: "Invoices",
@@ -206,6 +212,7 @@ const sectionTables: Partial<Record<string, BusinessRecordTable>> = {
   files: "documents",
   templates: "documentTemplates",
   services: "amcContracts",
+  items: "itemCatalog",
 };
 
 type Field = {
@@ -466,6 +473,16 @@ export function WorkspaceSection({ section }: { section: string }) {
         business={business}
         membership={membership}
         profile={profile}
+      />
+    );
+  if (section === "items")
+    return (
+      <ItemCatalog
+        business={business}
+        membership={membership}
+        profile={profile}
+        records={businessRecords}
+        onChange={setBusinessRecords}
       />
     );
 

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       );
     const databases = database();
     await requireAccess(databases, businessId, userId);
-    const [profiles, parties, templates] = await Promise.all([
+    const [profiles, parties, templates, items] = await Promise.all([
       databases.listDocuments(databaseId, "business_billing_profiles", [
         Query.equal("businessId", businessId),
         Query.limit(10),
@@ -70,11 +70,18 @@ export async function GET(request: NextRequest) {
         Query.equal("businessId", businessId),
         Query.limit(100),
       ]),
+      databases.listDocuments(databaseId, "item_catalog", [
+        Query.equal("businessId", businessId),
+        Query.equal("isActive", true),
+        Query.orderAsc("name"),
+        Query.limit(500),
+      ]),
     ]);
     return NextResponse.json({
       profile: profiles.documents[0] ?? null,
       parties: parties.documents,
       templates: templates.documents,
+      items: items.documents,
     });
   } catch (error: any) {
     return NextResponse.json(

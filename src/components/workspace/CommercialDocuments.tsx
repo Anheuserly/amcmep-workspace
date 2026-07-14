@@ -209,6 +209,7 @@ function DocumentComposer({
   const [signature, setSignature] = useState<File | null>(null);
   const [parties, setParties] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [catalog, setCatalog] = useState<any[]>([]);
   const [selectedPartyId, setSelectedPartyId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [saveParty, setSaveParty] = useState(false);
@@ -262,6 +263,7 @@ function DocumentComposer({
         if (!response.ok) throw new Error(result.error);
         const saved = result.profile;
         setParties(result.parties ?? []);
+        setCatalog(result.items ?? []);
         setTemplates(
           (result.templates ?? []).filter(
             (item: any) => item.documentType === type,
@@ -320,6 +322,23 @@ function DocumentComposer({
       terms: template.defaultTerms || current.terms,
       notes: template.defaultNotes || current.notes,
     }));
+  }
+
+  function addCatalogItem(id: string) {
+    const saved = catalog.find((item) => item.$id === id);
+    if (!saved) return;
+    setItems((current) => [
+      ...current.filter((item, index) => index > 0 || item.description),
+      {
+        description: saved.description || saved.name || "",
+        hsnSac: saved.hsnSac || "",
+        quantity: 1,
+        unit: saved.unit || "Nos",
+        rate: Number(saved.rate || 0),
+        discount: 0,
+        gstRate: Number(saved.gstRate || 0),
+      },
+    ]);
   }
   const updateItem = (index: number, key: keyof LineItem, value: string) =>
     setItems((current) =>
@@ -604,6 +623,29 @@ function DocumentComposer({
             </Section>
           </div>
           <Section title="Items" icon={IndianRupee}>
+            {catalog.length ? (
+              <label className="mb-4 block max-w-lg">
+                <span className="text-xs font-bold text-slate-600">
+                  Add from saved items & services
+                </span>
+                <select
+                  defaultValue=""
+                  onChange={(event) => {
+                    addCatalogItem(event.target.value);
+                    event.target.value = "";
+                  }}
+                  className="mt-1.5 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                >
+                  <option value="">Choose a catalogue item</option>
+                  {catalog.map((item) => (
+                    <option key={item.$id} value={item.$id}>
+                      {item.name} · ₹
+                      {Number(item.rate || 0).toLocaleString("en-IN")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <div className="overflow-x-auto">
               <div className="min-w-[900px]">
                 <div className="grid grid-cols-[2fr_110px_90px_90px_120px_100px_90px_40px] gap-2 pb-2 text-[10px] font-bold uppercase text-slate-500">
