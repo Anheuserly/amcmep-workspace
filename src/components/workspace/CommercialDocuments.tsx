@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Building2,
   FileSignature,
@@ -205,7 +205,13 @@ function DocumentComposer({
   onCreated: (record: any) => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const [loadingDefaults, setLoadingDefaults] = useState(true);
   const [signature, setSignature] = useState<File | null>(null);
+  const [parties, setParties] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedPartyId, setSelectedPartyId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [saveParty, setSaveParty] = useState(false);
   const [items, setItems] = useState<LineItem[]>([newItem()]);
   const [form, setForm] = useState({
     documentNumber: "",
@@ -245,6 +251,76 @@ function DocumentComposer({
   );
   const set = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  useEffect(() => {
+    if (!business || !profile?.userId) return;
+    fetch(
+      `/api/billing-data?businessId=${encodeURIComponent(business.$id)}&userId=${encodeURIComponent(profile.userId)}`,
+    )
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        const saved = result.profile;
+        setParties(result.parties ?? []);
+        setTemplates(
+          (result.templates ?? []).filter(
+            (item: any) => item.documentType === type,
+          ),
+        );
+        if (saved)
+          setForm((current) => ({
+            ...current,
+            billFromName: saved.legalName || current.billFromName,
+            billFromGstin: saved.gstin || "",
+            billFromPan: saved.pan || "",
+            billFromAddress: saved.address || current.billFromAddress,
+            billFromState: saved.state || current.billFromState,
+            billFromStateCode: saved.stateCode || "",
+            placeOfSupply: saved.state || current.placeOfSupply,
+            bankName: saved.bankName || "",
+            accountName: saved.accountName || current.accountName,
+            accountNumber: saved.accountNumber || "",
+            ifsc: saved.ifsc || "",
+            branch: saved.branch || "",
+            upiId: saved.upiId || "",
+            terms: saved.defaultTerms || current.terms,
+            authorizedSignatory: saved.authorizedSignatory || "",
+            signatureFileId: saved.signatureFileId || "",
+          }));
+      })
+      .catch((error) =>
+        toast.error(
+          error?.message || "Saved billing details could not be loaded.",
+        ),
+      )
+      .finally(() => setLoadingDefaults(false));
+  }, [business, profile?.userId, type]);
+
+  function chooseParty(id: string) {
+    setSelectedPartyId(id);
+    const party = parties.find((item) => item.$id === id);
+    if (!party) return;
+    setForm((current) => ({
+      ...current,
+      billToName: party.legalName || "",
+      billToGstin: party.gstin || "",
+      billToAddress: party.billingAddress || "",
+      billToState: party.state || "",
+      billToStateCode: party.stateCode || "",
+      shipToAddress: party.shippingAddress || "",
+    }));
+  }
+
+  function chooseTemplate(id: string) {
+    setSelectedTemplateId(id);
+    const template = templates.find((item) => item.$id === id);
+    if (!template) return;
+    setForm((current) => ({
+      ...current,
+      terms: template.defaultTerms || current.terms,
+      notes: template.defaultNotes || current.notes,
+    }));
+  }
   const updateItem = (index: number, key: keyof LineItem, value: string) =>
     setItems((current) =>
       current.map((item, i) =>
@@ -300,7 +376,7 @@ function DocumentComposer({
           userId: profile.userId,
           userName: profile.name || "",
           documentType: type,
-          form: { ...form, signatureFileId },
+          form: { ...form, signatureFileId, templateId: selectedTemplateId },
           items,
           totals,
         }),
@@ -308,6 +384,32 @@ function DocumentComposer({
       const result = await response.json();
       if (!response.ok)
         throw new Error(result.error || "Document could not be created.");
+      if (saveParty && !selectedPartyId) {
+        const partyResponse = await fetch("/api/billing-data", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            kind: "party",
+            businessId: business.$id,
+            userId: profile.userId,
+            data: {
+              partyType: type === "purchase_order" ? "vendor" : "customer",
+              legalName: form.billToName,
+              gstin: form.billToGstin,
+              billingAddress: form.billToAddress,
+              shippingAddress: form.shipToAddress,
+              state: form.billToState,
+              stateCode: form.billToStateCode,
+            },
+          }),
+        });
+        const partyResult = await partyResponse.json();
+        if (!partyResponse.ok)
+          toast.error(
+            partyResult.error ||
+              "The document was saved, but the billing party could not be saved.",
+          );
+      }
       onCreated(result.document);
       toast.success(`${typeCopy[type].title.slice(0, -1)} saved as draft.`);
       onClose();
@@ -336,8 +438,33 @@ function DocumentComposer({
           </button>
         </header>
         <div className="space-y-5 p-5">
+          {loadingDefaults ? (
+            <div className="flex items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800">
+              <Loader2 className="size-4 animate-spin" />
+              Loading saved billing details
+            </div>
+          ) : null}
           <Section title="Document details" icon={FileSignature}>
             <Grid>
+              {templates.length ? (
+                <label>
+                  <span className="text-xs font-bold text-slate-600">
+                    Template
+                  </span>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(event) => chooseTemplate(event.target.value)}
+                    className="mt-1.5 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                  >
+                    <option value="">Business defaults</option>
+                    {templates.map((template) => (
+                      <option key={template.$id} value={template.$id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <Input
                 label="Document number"
                 required
@@ -407,6 +534,26 @@ function DocumentComposer({
             </Section>
             <Section title="Bill to" icon={Building2}>
               <Grid>
+                {parties.length ? (
+                  <label className="sm:col-span-2">
+                    <span className="text-xs font-bold text-slate-600">
+                      Saved customer or vendor
+                    </span>
+                    <select
+                      value={selectedPartyId}
+                      onChange={(event) => chooseParty(event.target.value)}
+                      className="mt-1.5 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
+                    >
+                      <option value="">Enter new billing party</option>
+                      {parties.map((party) => (
+                        <option key={party.$id} value={party.$id}>
+                          {party.legalName}
+                          {party.gstin ? ` · ${party.gstin}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
                 <Input
                   label="Customer / company"
                   required
@@ -440,6 +587,19 @@ function DocumentComposer({
                   value={form.shipToAddress}
                   onChange={(v) => set("shipToAddress", v)}
                 />
+                {!selectedPartyId ? (
+                  <label className="flex items-center gap-2 sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={saveParty}
+                      onChange={(event) => setSaveParty(event.target.checked)}
+                      className="size-4"
+                    />
+                    <span className="text-sm font-semibold text-slate-700">
+                      Save this customer or vendor for future documents
+                    </span>
+                  </label>
+                ) : null}
               </Grid>
             </Section>
           </div>

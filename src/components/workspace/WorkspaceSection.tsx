@@ -53,6 +53,7 @@ import {
 } from "@/components/workspace/CommercialDocuments";
 import { TeamManager } from "@/components/workspace/TeamManager";
 import { PartnerManager } from "@/components/workspace/PartnerManager";
+import { BillingSettings } from "@/components/workspace/BillingSettings";
 
 const sectionMeta: Record<
   string,
@@ -459,6 +460,14 @@ export function WorkspaceSection({ section }: { section: string }) {
   if (section === "roles") return <RolesPage viewer={membership} />;
   if (section === "departments")
     return <DepartmentsPage business={business} members={members} />;
+  if (section === "business-settings")
+    return (
+      <BillingSettings
+        business={business}
+        membership={membership}
+        profile={profile}
+      />
+    );
 
   const commercialType: Partial<Record<string, CommercialDocumentType>> = {
     quotations: "quotation",

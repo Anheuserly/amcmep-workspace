@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
       notes: String(form.notes ?? ""),
       authorizedSignatory: String(form.authorizedSignatory ?? ""),
       signatureFileId: String(form.signatureFileId ?? ""),
+      templateId: String(form.templateId ?? ""),
       subtotal: Number(totals.subtotal || 0),
       discountTotal: Number(totals.discountTotal || 0),
       taxableTotal: Number(totals.taxableTotal || 0),

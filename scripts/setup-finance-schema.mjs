@@ -69,6 +69,7 @@ const schemas = {
   business_billing_profiles: [
     ["s", "businessId", 80, true],
     ["s", "legalName", 200, true],
+    ["s", "tradeName", 200, false],
     ["s", "gstin", 20, false],
     ["s", "pan", 20, false],
     ["s", "address", 2000, false],
