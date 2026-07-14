@@ -146,6 +146,31 @@ const schemas = {
     ["d", "createdAt", false],
     ["d", "updatedAt", false],
   ],
+  team_invitations: [
+    ["s", "businessId", 80, true],
+    ["s", "phone", 30, true],
+    ["s", "role", 40, true],
+    ["s", "permissionsJson", 5000, false],
+    ["s", "status", 30, false, "pending"],
+    ["s", "invitedBy", 80, true],
+    ["s", "invitedByName", 160, false],
+    ["d", "invitedAt", false],
+    ["d", "acceptedAt", false],
+  ],
+  business_partners: [
+    ["s", "businessId", 80, true],
+    ["s", "partnerBusinessId", 80, true],
+    ["s", "partnerName", 200, true],
+    ["s", "partnerPhone", 30, false],
+    ["s", "partnerEmail", 160, false],
+    ["s", "partnerCity", 100, false],
+    ["s", "relationshipType", 40, false, "service_partner"],
+    ["s", "status", 30, false, "active"],
+    ["s", "notes", 2000, false],
+    ["s", "createdBy", 80, true],
+    ["d", "createdAt", false],
+    ["d", "updatedAt", false],
+  ],
 };
 
 async function exists(id) {

@@ -51,6 +51,8 @@ import {
   CommercialDocuments,
   type CommercialDocumentType,
 } from "@/components/workspace/CommercialDocuments";
+import { TeamManager } from "@/components/workspace/TeamManager";
+import { PartnerManager } from "@/components/workspace/PartnerManager";
 
 const sectionMeta: Record<
   string,
@@ -63,10 +65,16 @@ const sectionMeta: Record<
     permission: "business.view",
   },
   team: {
-    title: "Partners & teams",
+    title: "Team",
     description:
-      "Invite people, assign organization roles, and control workspace access.",
+      "Invite internal staff, assign organization roles, and control account access.",
     permission: "team.view",
+  },
+  partners: {
+    title: "Business partners",
+    description:
+      "External companies connected for shared services, supply, and delivery.",
+    permission: "vendors.view",
   },
   departments: {
     title: "Departments",
@@ -432,11 +440,20 @@ export function WorkspaceSection({ section }: { section: string }) {
   if (!membership || !can(membership, meta.permission)) return <AccessDenied />;
   if (section === "team")
     return (
-      <TeamPage
+      <TeamManager
         business={business}
         viewer={membership}
-        members={members}
+        profile={profile}
+        members={members.filter((item) => item.role !== "partner")}
         onChange={setMembers}
+      />
+    );
+  if (section === "partners")
+    return (
+      <PartnerManager
+        business={business}
+        viewer={membership}
+        profile={profile}
       />
     );
   if (section === "roles") return <RolesPage viewer={membership} />;
