@@ -173,7 +173,7 @@ export async function createQrLoginSession() {
     requestedAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
     requesterPlatform: "web",
-    requesterDeviceId: typeof navigator === "undefined" ? "web" : navigator.userAgent.slice(0, 120),
+    requesterDeviceId: typeof navigator === "undefined" ? "web" : navigator.userAgent.slice(0, 100),
     requesterDeviceModel: "AMC MEP web",
   });
   return toQrLoginSession(doc);

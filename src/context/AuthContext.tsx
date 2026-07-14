@@ -6,6 +6,7 @@ import { appwrite } from "@/lib/appwrite/client";
 import {
   clearCurrentSession,
   clearStoredProfileSession,
+  consumeApprovedQrLogin,
   ensureAnonymousSession,
   linkEmailClientProfile,
   loadStoredProfileSession,
@@ -171,7 +172,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshProfile();
+    const token = new URLSearchParams(window.location.search).get("sso");
+    if (!token) { refreshProfile(); return; }
+    consumeApprovedQrLogin(token).then((profile) => {
+      setState((prev) => ({ ...prev, profile, isAuthenticated: true, activeRole: profile.activeRole, roles: profile.roles, isLoading: false }));
+      window.history.replaceState({}, "", window.location.pathname);
+    }).catch(() => {
+      window.location.replace(`https://app.amcmep.in/login?returnTo=${encodeURIComponent(window.location.origin)}`);
+    });
   }, [refreshProfile]);
 
   const login = useCallback(
