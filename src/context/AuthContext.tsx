@@ -176,7 +176,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) { refreshProfile(); return; }
     consumeApprovedQrLogin(token).then((profile) => {
       setState((prev) => ({ ...prev, profile, isAuthenticated: true, activeRole: profile.activeRole, roles: profile.roles, isLoading: false }));
-      window.history.replaceState({}, "", window.location.pathname);
+      const params = new URLSearchParams(window.location.search);
+      params.delete("sso");
+      window.history.replaceState({}, "", `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`);
     }).catch(() => {
       window.location.replace(`https://app.amcmep.in/login?returnTo=${encodeURIComponent(window.location.origin)}`);
     });

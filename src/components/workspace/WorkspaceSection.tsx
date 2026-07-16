@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CalendarDays,
@@ -386,6 +387,7 @@ const recordSections: Partial<Record<string, RecordSection>> = {
 
 export function WorkspaceSection({ section }: { section: string }) {
   const { profile } = useAuth();
+  const searchParams = useSearchParams();
   const meta = sectionMeta[section];
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState<Business | null>(null);
@@ -406,7 +408,9 @@ export function WorkspaceSection({ section }: { section: string }) {
         const own = (await fetchMembershipsForUser(profile.userId)).map(
           toWorkspaceMembership,
         );
+        const requestedBusinessId = searchParams.get("businessId");
         const selected =
+          own.find((item) => item.businessId === requestedBusinessId) ??
           own.find((item) => item.businessId === profile.activeBusinessId) ??
           own[0];
         if (!selected) return;
@@ -442,7 +446,7 @@ export function WorkspaceSection({ section }: { section: string }) {
     return () => {
       active = false;
     };
-  }, [profile?.activeBusinessId, profile?.userId, section]);
+  }, [profile?.activeBusinessId, profile?.userId, searchParams, section]);
 
   if (!meta) return null;
   if (loading)

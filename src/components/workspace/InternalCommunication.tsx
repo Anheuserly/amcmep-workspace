@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MessageSquare, Plus, Search, Send, Users, X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -15,6 +15,7 @@ export function InternalCommunication({ business, profile, members }: { business
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
   const [newOpen, setNewOpen] = useState(false);
+  const handledTarget = useRef("");
   const identity = profile?.userId || "";
 
   const loadSessions = useCallback(async () => {
@@ -49,6 +50,16 @@ export function InternalCommunication({ business, profile, members }: { business
     if (!response.ok) { toast.error(data.error || "Conversation could not be created."); return; }
     setNewOpen(false); await loadSessions(); setSelected(data.session.$id);
   }
+
+  useEffect(() => {
+    const targetUserId = searchParams.get("startUserId") || "";
+    if (!business?.$id || !identity || !targetUserId || handledTarget.current === `${business.$id}:${targetUserId}`) return;
+    const member = members.find((item) => item.userId === targetUserId && item.status !== "inactive");
+    if (!member) return;
+    handledTarget.current = `${business.$id}:${targetUserId}`;
+    const requestedName = searchParams.get("startName")?.trim();
+    void create({ ...member, memberName: requestedName || member.memberName });
+  }, [business?.$id, identity, members, searchParams]);
   async function send() {
     const text = input.trim(); if (!text || !selected || !business) return;
     setInput("");
