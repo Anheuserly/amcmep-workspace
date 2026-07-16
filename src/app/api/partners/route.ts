@@ -62,16 +62,23 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json({ businesses: [...merged.values()] });
     }
-    const result = await databases.listDocuments(
-      databaseId,
-      "business_partners",
-      [
-        Query.equal("businessId", businessId),
-        Query.orderDesc("$createdAt"),
-        Query.limit(100),
-      ],
-    );
-    return NextResponse.json({ partners: result.documents });
+    const merged = new Map<string, any>();
+    try {
+      const result = await databases.listDocuments(databaseId, "business_partners", [Query.equal("businessId", businessId), Query.orderDesc("$createdAt"), Query.limit(100)]);
+      result.documents.forEach((row) => merged.set(`business:${row.partnerBusinessId || row.$id}`, row));
+    } catch {}
+    try {
+      const memberships = await databases.listDocuments(databaseId, "business_memberships", [Query.equal("businessId", businessId), Query.equal("role", "partner"), Query.equal("status", "active"), Query.limit(100)]);
+      memberships.documents.forEach((row) => merged.set(`member:${row.userId || row.$id}`, {
+        ...row,
+        partnerName: text(row, "memberName", "name") || "Partner",
+        partnerPhone: text(row, "memberPhone", "phone"),
+        relationshipType: "enrolled_partner",
+        partnerUserId: text(row, "userId", "memberDocumentId"),
+        source: "membership",
+      }));
+    } catch {}
+    return NextResponse.json({ partners: [...merged.values()] });
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message ?? "Partners could not be loaded." },

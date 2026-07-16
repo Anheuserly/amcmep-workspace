@@ -5,6 +5,7 @@ const sections = new Set([
   "business",
   "team",
   "partners",
+  "communication",
   "departments",
   "roles",
   "projects",

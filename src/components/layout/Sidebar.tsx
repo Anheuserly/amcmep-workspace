@@ -23,6 +23,7 @@ import {
   FileSignature,
   HandCoins,
   Handshake,
+  MessagesSquare,
   Landmark,
   MapPinned,
   Network,
@@ -76,6 +77,12 @@ const navigation = [
         href: "/partners",
         icon: Handshake,
         permission: "vendors.view",
+      },
+      {
+        label: "Communication",
+        href: "/communication",
+        icon: MessagesSquare,
+        permission: "team.view",
       },
       {
         label: "Departments",

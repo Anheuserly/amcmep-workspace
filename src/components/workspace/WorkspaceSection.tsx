@@ -55,6 +55,7 @@ import { TeamManager } from "@/components/workspace/TeamManager";
 import { PartnerManager } from "@/components/workspace/PartnerManager";
 import { BillingSettings } from "@/components/workspace/BillingSettings";
 import { ItemCatalog } from "@/components/workspace/ItemCatalog";
+import { InternalCommunication } from "@/components/workspace/InternalCommunication";
 
 const sectionMeta: Record<
   string,
@@ -77,6 +78,11 @@ const sectionMeta: Record<
     description:
       "External companies connected for shared services, supply, and delivery.",
     permission: "vendors.view",
+  },
+  communication: {
+    title: "Communication",
+    description: "Private conversations with business team members and partners.",
+    permission: "team.view",
   },
   departments: {
     title: "Departments",
@@ -464,6 +470,8 @@ export function WorkspaceSection({ section }: { section: string }) {
         profile={profile}
       />
     );
+  if (section === "communication")
+    return <InternalCommunication business={business} profile={profile} members={members} />;
   if (section === "roles") return <RolesPage viewer={membership} />;
   if (section === "departments")
     return <DepartmentsPage business={business} members={members} />;

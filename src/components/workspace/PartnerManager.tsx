@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Building2, Loader2, MapPin, Plus, Search, X } from "lucide-react";
+import { Building2, Loader2, MapPin, MessageSquare, Plus, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Business, WorkspaceMembership } from "@/types";
 import { can } from "@/lib/workspace/permissions";
@@ -74,6 +74,25 @@ export function PartnerManager({
       setSaving("");
     }
   }
+  async function message(row: any) {
+    if (!business) return;
+    const response = await fetch("/api/internal-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "create",
+        businessId: business.$id,
+        userId: profile.userId,
+        targetUserId: readString(row, "partnerUserId") || readString(row, "userId"),
+        targetBusinessId: readString(row, "partnerBusinessId"),
+        targetName: readString(row, "partnerName"),
+        conversationType: "partner",
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) { toast.error(data.error || "Partner conversation could not be opened."); return; }
+    window.location.assign(`/communication?session=${data.session.$id}`);
+  }
   return (
     <div className="space-y-5">
       <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -128,6 +147,7 @@ export function PartnerManager({
                     readString(row, "partnerEmail") ||
                     "Contact not public"}
                 </p>
+                <button onClick={() => void message(row)} className="mt-4 inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:border-blue-300 hover:text-blue-700"><MessageSquare size={15}/>Message partner</button>
               </article>
             ))
           ) : (
