@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/setup-finance-schema.mjs",
+    "prebuild": "node scripts/setup-finance-schema.mjs && node scripts/setup-internal-chat.mjs",
     "build": "next build",
     "appwrite:setup-internal-chat": "node scripts/setup-internal-chat.mjs",
     "start": "next start",
