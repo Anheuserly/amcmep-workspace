@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, Loader2, Phone, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertCircle, CheckCircle2, Clock3, Loader2, Phone, Plus, UserCheck, UserRoundSearch, X } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Business, WorkspaceMembership } from "@/types";
 import { can, roleDefinitions } from "@/lib/workspace/permissions";
@@ -29,7 +29,10 @@ export function TeamManager({
     invited: number;
   } | null>(null);
   const [invitations, setInvitations] = useState<any[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [checking, setChecking] = useState(false);
   const manager = can(viewer, "team.manage");
+  const parsedPhones = useMemo(() => [...new Set(phones.split(/[\n,;]+/).map((item) => item.replace(/\D/g, "")).filter((item) => item.length >= 10).map((item) => `+91${item.slice(-10)}`))].slice(0, 25), [phones]);
   useEffect(() => {
     if (!manager || !business || !profile?.userId) return;
     fetch(`/api/team?businessId=${business.$id}&userId=${profile.userId}`)
@@ -37,17 +40,19 @@ export function TeamManager({
       .then((data) => setInvitations(data.invitations || []))
       .catch(() => undefined);
   }, [business, manager, profile?.userId]);
+  useEffect(() => {
+    if (!open || !business || !profile?.userId || !parsedPhones.length) { setMatches([]); setChecking(false); return; }
+    setChecking(true);
+    const timer = window.setTimeout(() => {
+      fetch(`/api/team?businessId=${encodeURIComponent(business.$id)}&userId=${encodeURIComponent(profile.userId)}&phones=${encodeURIComponent(parsedPhones.join(","))}`)
+        .then((response) => response.json()).then((data) => setMatches(data.matches || [])).catch(() => setMatches([])).finally(() => setChecking(false));
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [business, open, parsedPhones, profile?.userId]);
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!business || !profile?.userId) return;
-    const list = [
-      ...new Set(
-        phones
-          .split(/[\n,;]+/)
-          .map((item) => item.trim())
-          .filter(Boolean),
-      ),
-    ];
+    const list = parsedPhones.filter((phone) => matches.find((item) => item.phone === phone)?.status !== "already_member");
     if (!list.length) return;
     setSaving(true);
     try {
@@ -219,14 +224,15 @@ export function TeamManager({
                     rows={5}
                     value={phones}
                     onChange={(e) => setPhones(e.target.value)}
-                    placeholder={"+91 98765 43210\n+91 91234 56789"}
+                    placeholder={"8171486963, 9871936847"}
                     className="w-full rounded-md border border-slate-300 py-2.5 pl-10 pr-3 text-sm"
                   />
                 </div>
                 <p className="mt-1.5 text-xs text-slate-500">
-                  Separate numbers with a new line or comma.
+                  Paste up to 25 numbers. Commas, spaces, and new lines are supported.
                 </p>
               </label>
+              {phones.trim() ? <div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><div className="flex items-center justify-between"><p className="text-xs font-bold text-slate-700">People found</p>{checking ? <Loader2 className="size-4 animate-spin text-blue-600"/> : <span className="text-[11px] text-slate-500">{parsedPhones.length} valid number{parsedPhones.length===1?"":"s"}</span>}</div><div className="mt-3 space-y-2">{parsedPhones.map((phone) => { const match=matches.find((item)=>item.phone===phone); const status=match?.status; return <div key={phone} className="flex items-center gap-3 rounded-md bg-white px-3 py-2.5"><span className={`grid size-8 shrink-0 place-items-center rounded-full ${status==="registered"?"bg-emerald-50 text-emerald-600":status==="already_member"?"bg-blue-50 text-blue-600":"bg-amber-50 text-amber-600"}`}>{status==="registered"?<UserCheck size={16}/>:status==="already_member"?<CheckCircle2 size={16}/>:status==="not_registered"?<Clock3 size={16}/>:<UserRoundSearch size={16}/>}</span><span className="min-w-0 flex-1"><strong className="block truncate text-xs text-slate-900">{match?.name || phone}</strong><small className="text-slate-500">{match?.name ? phone : status==="not_registered"?"Not registered; an invitation will remain pending.":"Checking AMC MEP…"}</small></span><span className={`text-[10px] font-bold uppercase ${status==="registered"?"text-emerald-600":status==="already_member"?"text-blue-600":"text-amber-600"}`}>{status==="registered"?"Ready":status==="already_member"?"Already added":status==="not_registered"?"Invite":"Checking"}</span></div>})}{!parsedPhones.length ? <div className="flex items-center gap-2 text-xs text-red-600"><AlertCircle size={15}/>Enter a valid 10-digit mobile number.</div> : null}</div></div> : null}
               <label className="block">
                 <span className="text-xs font-bold text-slate-700">
                   Organization role
@@ -272,7 +278,7 @@ export function TeamManager({
                 Cancel
               </button>
               <button
-                disabled={saving}
+                disabled={saving || checking || !parsedPhones.length || parsedPhones.every((phone) => matches.find((item) => item.phone === phone)?.status === "already_member")}
                 className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white"
               >
                 {saving ? <Loader2 className="size-4 animate-spin" /> : null}Add

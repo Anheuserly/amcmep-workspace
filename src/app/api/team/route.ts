@@ -136,6 +136,15 @@ function value(row: any, ...keys: string[]) {
   }
   return "";
 }
+async function findProfile(databases: Databases, raw: string) {
+  for (const candidate of phoneVariants(raw)) {
+    try {
+      const found = await databases.listDocuments(databaseId, userDataTable, [Query.equal("phone", candidate), Query.limit(1)]);
+      if (found.documents[0]) return found.documents[0];
+    } catch {}
+  }
+  return null;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -143,6 +152,19 @@ export async function GET(request: NextRequest) {
     const userId = request.nextUrl.searchParams.get("userId") ?? "";
     const databases = db();
     await manager(databases, businessId, userId);
+    const phones = (request.nextUrl.searchParams.get("phones") ?? "").split(",").map((item) => item.trim()).filter(Boolean).slice(0, 25);
+    if (phones.length) {
+      const matches = [];
+      for (const raw of phones) {
+        const normalized = phoneVariants(raw).at(-1) ?? raw;
+        const profile = await findProfile(databases, raw);
+        if (!profile) { matches.push({ phone: normalized, status: "not_registered" }); continue; }
+        const memberUserId = value(profile, "user_id", "userId", "authUserId") || profile.$id;
+        const existing = await databases.listDocuments(databaseId, "business_memberships", [Query.equal("businessId", businessId), Query.equal("userId", memberUserId), Query.limit(1)]);
+        matches.push({ phone: normalized, status: existing.documents[0] ? "already_member" : "registered", name: value(profile, "name", "fullName", "customerId") || "AMC MEP user" });
+      }
+      return NextResponse.json({ matches });
+    }
     const result = await databases.listDocuments(
       databaseId,
       "team_invitations",
@@ -180,20 +202,7 @@ export async function POST(request: NextRequest) {
     const results = [];
     for (const raw of phones) {
       const phone = phoneVariants(raw).at(-1) ?? raw;
-      let profile: any = null;
-      for (const candidate of phoneVariants(raw)) {
-        try {
-          const found = await databases.listDocuments(
-            databaseId,
-            userDataTable,
-            [Query.equal("phone", candidate), Query.limit(1)],
-          );
-          if (found.documents[0]) {
-            profile = found.documents[0];
-            break;
-          }
-        } catch {}
-      }
+      const profile: any = await findProfile(databases, raw);
       if (profile) {
         const memberUserId =
           value(profile, "user_id", "userId", "authUserId") || profile.$id;

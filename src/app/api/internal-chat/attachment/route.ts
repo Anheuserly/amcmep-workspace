@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Client, Databases, ID, Query, Storage } from "node-appwrite";
+import { Client, Compression, Databases, ID, Query, Storage } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ?? "https://fra.cloud.appwrite.io/v1";
@@ -17,6 +17,12 @@ function services() {
   return { databases: new Databases(client), storage: new Storage(client) };
 }
 function value(row: any, key: string) { return String(row?.[key] ?? "").trim(); }
+async function ensureBucket(storage: Storage) {
+  try { await storage.getBucket(bucketId); }
+  catch {
+    await storage.createBucket(bucketId, "Internal communication files", [], false, true, 20 * 1024 * 1024, ["jpg","jpeg","png","gif","webp","pdf","doc","docx","xls","xlsx","csv","txt","zip"], Compression.None, true, true);
+  }
+}
 async function access(databases: Databases, sessionId: string, userId: string) {
   const session = await databases.getDocument(databaseId, sessionsTable, sessionId);
   if (!Array.isArray(session.participantIds) || !session.participantIds.map(String).includes(userId)) throw new Error("You are not part of this conversation.");
@@ -40,6 +46,7 @@ export async function POST(request: NextRequest) {
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
     if (!allowed.has(extension)) throw new Error("This file type is not supported.");
     const { session, actor } = await access(databases, sessionId, userId);
+    await ensureBucket(storage);
     const uploaded = await storage.createFile(bucketId, ID.unique(), InputFile.fromBuffer(Buffer.from(await file.arrayBuffer()), file.name));
     const now = new Date().toISOString();
     const isImage = file.type.startsWith("image/");
