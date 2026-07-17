@@ -44,6 +44,7 @@ export function InternalCommunication({
     incoming?: any;
   } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const messageEnd = useRef<HTMLDivElement>(null);
   const handledTarget = useRef("");
   const identity = profile?.userId || "";
 
@@ -86,6 +87,9 @@ export function InternalCommunication({
     const timer = window.setInterval(loadMessages, 3000);
     return () => window.clearInterval(timer);
   }, [loadMessages]);
+  useEffect(() => {
+    messageEnd.current?.scrollIntoView({ block: "end" });
+  }, [messages, selected]);
   useEffect(() => {
     const timer = window.setInterval(async () => {
       if (!identity || call) return;
@@ -234,14 +238,14 @@ export function InternalCommunication({
   const isGroup = readString(activeSession, "conversationType") === "group";
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-end justify-between border-b pb-5">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <header className="flex shrink-0 items-end justify-between border-b pb-3">
         <div>
           <p className="text-xs font-bold uppercase text-blue-600">
             {business?.name}
           </p>
-          <h1 className="mt-2 text-3xl font-bold">Communication</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <h1 className="mt-1 text-2xl font-bold">Communication</h1>
+          <p className="mt-1 text-sm text-slate-600">
             Private conversations with your team and connected partners.
           </p>
         </div>
@@ -253,8 +257,8 @@ export function InternalCommunication({
           New conversation
         </button>
       </header>
-      <section className="grid h-[calc(100vh-12rem)] min-h-[520px] grid-cols-1 overflow-hidden rounded-lg border bg-white md:grid-cols-[280px_1fr]">
-        <aside className="border-r">
+      <section className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-lg border bg-white md:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col overflow-hidden border-r">
           <div className="border-b p-3">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
@@ -266,12 +270,12 @@ export function InternalCommunication({
               />
             </div>
           </div>
-          <div className="divide-y overflow-y-auto">
+          <div className="min-h-0 flex-1 divide-y overflow-y-auto overscroll-contain">
             {visibleSessions.map((session) => (
               <button
                 key={session.$id}
                 onClick={() => setSelected(session.$id)}
-                className={`w-full p-3 text-left ${selected === session.$id ? "bg-blue-50" : "hover:bg-slate-50"}`}
+                className={`w-full px-3 py-2.5 text-left ${selected === session.$id ? "bg-blue-50" : "hover:bg-slate-50"}`}
               >
                 <p className="truncate text-sm font-bold text-slate-900">
                   {title(session)}
@@ -291,10 +295,10 @@ export function InternalCommunication({
             )}
           </div>
         </aside>
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           {selected ? (
             <>
-              <div className="flex items-center justify-between border-b px-4 py-3">
+              <div className="flex shrink-0 items-center justify-between border-b px-4 py-2.5">
                 <div>
                   <p className="font-bold">{otherName}</p>
                   <p className="text-xs text-slate-500">
@@ -322,7 +326,7 @@ export function InternalCommunication({
                   </div>
                 ) : null}
               </div>
-              <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/50 p-4">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-slate-50/50 p-4">
                 {messages.map((message) => {
                   const mine = readString(message, "senderId") === identity;
                   const type = readString(message, "messageType");
@@ -409,8 +413,9 @@ export function InternalCommunication({
                     </div>
                   );
                 })}
+                <div ref={messageEnd} />
               </div>
-              <div className="flex items-center gap-2 border-t p-3">
+              <div className="flex shrink-0 items-center gap-2 border-t bg-white p-3">
                 <input
                   ref={fileInput}
                   type="file"
