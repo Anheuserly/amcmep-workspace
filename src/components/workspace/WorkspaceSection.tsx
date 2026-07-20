@@ -57,6 +57,7 @@ import { PartnerManager } from "@/components/workspace/PartnerManager";
 import { BillingSettings } from "@/components/workspace/BillingSettings";
 import { ItemCatalog } from "@/components/workspace/ItemCatalog";
 import { InternalCommunication } from "@/components/workspace/InternalCommunication";
+import { ProductListings } from "@/components/workspace/ProductListings";
 
 const sectionMeta: Record<
   string,
@@ -129,6 +130,12 @@ const sectionMeta: Record<
     description:
       "Maintenance and service delivery records connected to this business.",
     permission: "services.view",
+  },
+  "product-listings": {
+    title: "Product listings",
+    description:
+      "Publish and control the products shown across AMC MEP marketplace channels.",
+    permission: "vendors.view",
   },
   items: {
     title: "Items & services",
@@ -495,6 +502,14 @@ export function WorkspaceSection({ section }: { section: string }) {
         profile={profile}
         records={businessRecords}
         onChange={setBusinessRecords}
+      />
+    );
+  if (section === "product-listings")
+    return (
+      <ProductListings
+        business={business}
+        membership={membership}
+        profile={profile}
       />
     );
 

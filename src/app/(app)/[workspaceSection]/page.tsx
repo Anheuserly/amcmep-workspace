@@ -14,6 +14,7 @@ const sections = new Set([
   "vendors",
   "tasks",
   "services",
+  "product-listings",
   "items",
   "invoices",
   "proforma-invoices",

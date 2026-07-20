@@ -30,6 +30,7 @@ import {
   ReceiptIndianRupee,
   ScrollText,
   ShoppingBag,
+  Store,
   BriefcaseBusiness,
   Tickets,
   UserCog,
@@ -101,6 +102,12 @@ const navigation = [
   {
     label: "Operations",
     items: [
+      {
+        label: "Product listings",
+        href: "/product-listings",
+        icon: Store,
+        permission: "vendors.view",
+      },
       {
         label: "Projects",
         href: "/projects",
