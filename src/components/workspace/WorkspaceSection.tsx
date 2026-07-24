@@ -137,6 +137,12 @@ const sectionMeta: Record<
       "Publish and control the products shown across AMC MEP marketplace channels.",
     permission: "vendors.view",
   },
+  "service-listings": {
+    title: "Service availability",
+    description:
+      "Publish the live service scope this business can currently accept.",
+    permission: "services.view",
+  },
   items: {
     title: "Items & services",
     description: "Reusable products, materials, and service rates.",
@@ -510,6 +516,15 @@ export function WorkspaceSection({ section }: { section: string }) {
         business={business}
         membership={membership}
         profile={profile}
+      />
+    );
+  if (section === "service-listings")
+    return (
+      <ProductListings
+        business={business}
+        membership={membership}
+        profile={profile}
+        listingType="service"
       />
     );
 

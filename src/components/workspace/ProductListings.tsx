@@ -38,10 +38,12 @@ export function ProductListings({
   business,
   membership,
   profile,
+  listingType = "product",
 }: {
   business: Business | null;
   membership: WorkspaceMembership;
   profile: any;
+  listingType?: "product" | "service";
 }) {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,7 @@ export function ProductListings({
     const params = new URLSearchParams({
       businessId: business.$id,
       userId: profile.userId,
+      listingType,
     });
     fetch(`/api/product-listings?${params}`)
       .then(async (response) => {
@@ -69,7 +72,12 @@ export function ProductListings({
     return () => {
       active = false;
     };
-  }, [business?.$id, profile?.userId]);
+  }, [business?.$id, listingType, profile?.userId]);
+
+  const noun = listingType === "service" ? "service" : "product";
+  const plural = listingType === "service" ? "services" : "products";
+  const title =
+    listingType === "service" ? "Service availability" : "Product listings";
 
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -121,10 +129,10 @@ export function ProductListings({
       );
       toast.success(
         visibility === "published"
-          ? "Product is now visible."
+          ? `${noun[0].toUpperCase()}${noun.slice(1)} is now visible.`
           : visibility === "hidden"
-            ? "Product hidden from public listings."
-            : "Product returned to drafts.",
+            ? `${noun[0].toUpperCase()}${noun.slice(1)} hidden from public listings.`
+            : `${noun[0].toUpperCase()}${noun.slice(1)} returned to drafts.`,
       );
     } catch (error: any) {
       setRecords(previous);
@@ -137,9 +145,11 @@ export function ProductListings({
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase text-blue-600">{business?.name}</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-950">Product listings</h1>
+          <h1 className="mt-2 text-3xl font-bold text-slate-950">{title}</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Manage the products published by this business. Every listing keeps its creator and business ownership.
+            {listingType === "service"
+              ? "Publish the services this business currently accepts. These live listings control service discovery and request routing."
+              : "Manage the products published by this business. Every listing keeps its creator and business ownership."}
           </p>
         </div>
         {manager ? (
@@ -147,7 +157,7 @@ export function ProductListings({
             onClick={() => setOpen(true)}
             className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700"
           >
-            <Plus size={17} /> Add product
+            <Plus size={17} /> Add {noun}
           </button>
         ) : null}
       </header>
@@ -164,7 +174,7 @@ export function ProductListings({
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search products, categories, or brands"
+            placeholder={`Search ${plural}, categories, or brands`}
             className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm"
           />
         </div>
@@ -191,6 +201,7 @@ export function ProductListings({
             <ListingCard
               key={listing.$id}
               listing={listing}
+              listingType={listingType}
               manager={manager}
               onVisibility={setVisibility}
             />
@@ -199,9 +210,9 @@ export function ProductListings({
       ) : (
         <div className="rounded-lg border border-slate-200 bg-white py-16 text-center">
           <PackageOpen className="mx-auto size-7 text-slate-300" />
-          <p className="mt-3 text-sm font-bold text-slate-800">No matching products</p>
+          <p className="mt-3 text-sm font-bold text-slate-800">No matching {plural}</p>
           <p className="mt-1 text-xs text-slate-500">
-            Add a listing or change the current search and visibility filter.
+            Add a {noun} listing or change the current search and visibility filter.
           </p>
         </div>
       )}
@@ -210,6 +221,7 @@ export function ProductListings({
         <CreateProductDialog
           business={business}
           profile={profile}
+          listingType={listingType}
           onClose={() => setOpen(false)}
           onCreated={(document: any) => {
             setRecords((current) => [document, ...current]);
@@ -240,8 +252,9 @@ function Metric({ label, value, tone, icon: Icon }: any) {
   );
 }
 
-function ListingCard({ listing, manager, onVisibility }: any) {
+function ListingCard({ listing, listingType, manager, onVisibility }: any) {
   const visibility = visibilityOf(listing);
+  const service = listingType === "service";
   const image = listing.mediaUrl || listing.imageUrl || listing.thumbnailUrl || "";
   return (
     <article className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -258,7 +271,7 @@ function ListingCard({ listing, manager, onVisibility }: any) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-base font-bold text-slate-950">
-                {listing.title || listing.name || "Untitled product"}
+                {listing.title || listing.name || `Untitled ${service ? "service" : "product"}`}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 {[listing.category, listing.brand].filter(Boolean).join(" · ") || "Uncategorised"}
@@ -268,9 +281,14 @@ function ListingCard({ listing, manager, onVisibility }: any) {
               {visibility}
             </span>
           </div>
-          <p className="mt-3 text-sm font-bold text-slate-900">{money(listing.price)}</p>
+          <p className="mt-3 text-sm font-bold text-slate-900">
+            {money(listing.price)}
+            {Number(listing.price || 0) > 0 && listing.unit ? (
+              <span className="font-medium text-slate-500"> / {listing.unit}</span>
+            ) : null}
+          </p>
           <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">
-            {listing.description || "Product details have not been added."}
+            {listing.description || `${service ? "Service" : "Product"} details have not been added.`}
           </p>
         </div>
       </div>
@@ -296,7 +314,7 @@ function ListingCard({ listing, manager, onVisibility }: any) {
   );
 }
 
-function CreateProductDialog({ business, profile, onClose, onCreated }: any) {
+function CreateProductDialog({ business, profile, listingType, onClose, onCreated }: any) {
   const [saving, setSaving] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -305,6 +323,7 @@ function CreateProductDialog({ business, profile, onClose, onCreated }: any) {
     const form = new FormData(event.currentTarget);
     form.set("businessId", business.$id);
     form.set("userId", profile.userId);
+    form.set("listingType", listingType);
     if (image) form.set("image", image);
     setSaving(true);
     try {
@@ -312,37 +331,42 @@ function CreateProductDialog({ business, profile, onClose, onCreated }: any) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       onCreated(result.document);
-      toast.success(visibilityOf(result.document) === "published" ? "Product published." : "Product saved as draft.");
+      toast.success(
+        visibilityOf(result.document) === "published"
+          ? `${service ? "Service" : "Product"} published.`
+          : `${service ? "Service" : "Product"} saved as draft.`,
+      );
     } catch (error: any) {
-      toast.error(error?.message || "Product could not be added.");
+      toast.error(error?.message || `${service ? "Service" : "Product"} could not be added.`);
     } finally {
       setSaving(false);
     }
   }
   const input = "mt-2 h-10 w-full rounded-md border border-slate-300 px-3 text-sm";
+  const service = listingType === "service";
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/50 p-4">
       <form onSubmit={submit} className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-lg bg-white shadow-xl">
         <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-xl font-bold text-slate-950">Add product listing</h2>
+          <h2 className="text-xl font-bold text-slate-950">Add {service ? "service availability" : "product listing"}</h2>
           <p className="mt-1 text-xs text-slate-500">The creator and active business are recorded automatically.</p>
         </div>
         <div className="grid gap-4 p-5 sm:grid-cols-2">
-          <label className="sm:col-span-2"><span className="text-xs font-bold">Product title</span><input name="title" required className={input} /></label>
-          <label><span className="text-xs font-bold">Category</span><input name="category" required placeholder="Business cards" className={input} /></label>
+          <label className="sm:col-span-2"><span className="text-xs font-bold">{service ? "Service name" : "Product title"}</span><input name="title" required placeholder={service ? "Fire alarm maintenance" : ""} className={input} /></label>
+          <label><span className="text-xs font-bold">Category</span><input name="category" required placeholder={service ? "Fire & safety" : "Business cards"} className={input} /></label>
           <label><span className="text-xs font-bold">Brand</span><input name="brand" defaultValue={business?.name || ""} className={input} /></label>
           <label><span className="text-xs font-bold">Price</span><input name="price" type="number" min="0" step="0.01" placeholder="0 for request quote" className={input} /></label>
-          <label><span className="text-xs font-bold">Unit</span><input name="unit" defaultValue="Piece" className={input} /></label>
-          <label><span className="text-xs font-bold">Minimum order</span><input name="minOrderQty" placeholder="100 pieces" className={input} /></label>
+          <label><span className="text-xs font-bold">Unit</span><input name="unit" defaultValue={service ? "Visit" : "Piece"} className={input} /></label>
+          <label><span className="text-xs font-bold">{service ? "Coverage / response" : "Minimum order"}</span><input name="minOrderQty" placeholder={service ? "Delhi NCR · Same day" : "100 pieces"} className={input} /></label>
           <label><span className="text-xs font-bold">Location</span><input name="location" defaultValue={(business as any)?.city || "Delhi"} className={input} /></label>
           <label className="sm:col-span-2"><span className="text-xs font-bold">Description</span><textarea name="description" required rows={4} className="mt-2 w-full rounded-md border border-slate-300 p-3 text-sm" /></label>
           <label className="sm:col-span-2"><span className="text-xs font-bold">Search tags</span><input name="tags" placeholder="printing, cards, corporate" className={input} /></label>
-          <label><span className="text-xs font-bold">Visibility</span><select name="visibility" defaultValue="draft" className={input}><option value="draft">Save as draft</option><option value="published">Publish now</option><option value="hidden">Keep hidden</option></select></label>
-          <label><span className="text-xs font-bold">Product image</span><span className="mt-2 flex h-10 cursor-pointer items-center gap-2 rounded-md border border-slate-300 px-3 text-xs font-semibold text-slate-600"><ImagePlus size={16} />{image?.name || "Choose JPG, PNG, or WebP"}<input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => setImage(event.target.files?.[0] || null)} /></span></label>
+          <label><span className="text-xs font-bold">Visibility</span><select name="visibility" defaultValue="published" className={input}><option value="published">Publish now</option><option value="draft">Save as draft</option><option value="hidden">Keep hidden</option></select></label>
+          <label><span className="text-xs font-bold">{service ? "Service cover image" : "Product image"}</span><span className="mt-2 flex h-10 cursor-pointer items-center gap-2 rounded-md border border-slate-300 px-3 text-xs font-semibold text-slate-600"><ImagePlus size={16} />{image?.name || "Choose JPG, PNG, or WebP"}<input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => setImage(event.target.files?.[0] || null)} /></span></label>
         </div>
         <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
           <button type="button" onClick={onClose} className="h-10 rounded-md border border-slate-300 px-4 text-sm font-bold">Cancel</button>
-          <button disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-5 text-sm font-bold text-white disabled:opacity-60">{saving ? <Loader2 className="size-4 animate-spin" /> : <Plus size={16} />}Save product</button>
+          <button disabled={saving} className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-5 text-sm font-bold text-white disabled:opacity-60">{saving ? <Loader2 className="size-4 animate-spin" /> : <Plus size={16} />}Save {service ? "service" : "product"}</button>
         </div>
       </form>
     </div>

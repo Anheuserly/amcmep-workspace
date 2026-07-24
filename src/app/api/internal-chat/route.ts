@@ -12,6 +12,8 @@ const sessionsTable =
   process.env.NEXT_PUBLIC_INTERNAL_CHAT_SESSIONS_ID ?? "internal_chat_sessions";
 const messagesTable =
   process.env.NEXT_PUBLIC_INTERNAL_CHAT_MESSAGES_ID ?? "internal_chat_messages";
+const notificationsTable =
+  process.env.NEXT_PUBLIC_NOTIFICATION_INBOX_ID ?? "notification_inbox";
 
 function db() {
   const key = process.env.APPWRITE_API_KEY;
@@ -302,9 +304,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ session }, { status: 201 });
     }
     const sessionId = String(body.sessionId ?? "");
-    await sessionAccess(databases, sessionId, userId);
+    const chatSession = await sessionAccess(databases, sessionId, userId);
     const text = String(body.text ?? "").trim();
     if (!text) throw new Error("Write a message first.");
+    const requestedType = String(body.messageType ?? "text");
+    const messageType = ["text", "call"].includes(requestedType)
+      ? requestedType
+      : "text";
     const message = await databases.createDocument(
       databaseId,
       messagesTable,
@@ -315,7 +321,7 @@ export async function POST(request: NextRequest) {
         senderId: userId,
         senderName: value(actor, "memberName") || "Member",
         messageText: text,
-        messageType: "text",
+        messageType,
         createdAt: now,
         isDeleted: false,
       },
@@ -325,6 +331,33 @@ export async function POST(request: NextRequest) {
       lastMessageAt: now,
       updatedAt: now,
     });
+    const recipients = Array.isArray(chatSession.participantIds)
+      ? chatSession.participantIds
+          .map(String)
+          .filter((participantId: string) => participantId && participantId !== userId)
+      : [];
+    const mentionedUserIds = Array.isArray(body.mentionedUserIds)
+      ? body.mentionedUserIds.map(String)
+      : [];
+    await Promise.allSettled(
+      recipients.map((recipientUserId: string) =>
+        databases.createDocument(databaseId, notificationsTable, ID.unique(), {
+          recipientUserId,
+          businessId,
+          workspace: "internal",
+          eventType: "internal_chat_message",
+          entityType: "internal_chat_session",
+          entityId: sessionId,
+          title: mentionedUserIds.includes(recipientUserId)
+            ? `${value(actor, "memberName") || "A team member"} mentioned you`
+            : value(actor, "memberName") || "New business message",
+          body: text.length > 160 ? `${text.slice(0, 157)}...` : text,
+          deepLink: `amcmepone://communication/${businessId}?session=${sessionId}`,
+          priority: "high",
+          createdAt: now,
+        }),
+      ),
+    );
     return NextResponse.json({ message }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(

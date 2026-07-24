@@ -46,6 +46,7 @@ export function InternalCommunication({
   const fileInput = useRef<HTMLInputElement>(null);
   const messageEnd = useRef<HTMLDivElement>(null);
   const handledTarget = useRef("");
+  const handledGroup = useRef("");
   const identity = profile?.userId || "";
 
   const loadSessions = useCallback(async () => {
@@ -167,6 +168,27 @@ export function InternalCommunication({
     setSelected(data.session.$id);
   }
 
+  async function createTeamChannel() {
+    if (!business) return;
+    const response = await fetch("/api/internal-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "create_group",
+        businessId: business.$id,
+        userId: identity,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      toast.error(data.error || "Team channel could not be opened.");
+      return;
+    }
+    setNewOpen(false);
+    await loadSessions();
+    setSelected(data.session.$id);
+  }
+
   useEffect(() => {
     const targetUserId = searchParams.get("startUserId") || "";
     if (
@@ -184,6 +206,17 @@ export function InternalCommunication({
     const requestedName = searchParams.get("startName")?.trim();
     void create({ ...member, memberName: requestedName || member.memberName });
   }, [business?.$id, identity, members, searchParams]);
+  useEffect(() => {
+    if (
+      searchParams.get("startGroup") !== "team" ||
+      !business?.$id ||
+      !identity ||
+      handledGroup.current === business.$id
+    )
+      return;
+    handledGroup.current = business.$id;
+    void createTeamChannel();
+  }, [business?.$id, identity, searchParams]);
   async function send() {
     const text = input.trim();
     if (!text || !selected || !business) return;
@@ -479,6 +512,20 @@ export function InternalCommunication({
               </button>
             </header>
             <div className="max-h-96 divide-y overflow-y-auto p-3">
+              <button
+                onClick={() => void createTeamChannel()}
+                className="flex w-full items-center gap-3 rounded-md p-3 text-left hover:bg-slate-50"
+              >
+                <span className="grid size-10 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+                  <Users size={18} />
+                </span>
+                <span>
+                  <strong className="block text-sm">Team channel</strong>
+                  <small className="text-slate-500">
+                    A shared conversation for all active team members
+                  </small>
+                </span>
+              </button>
               {candidates.map((member) => (
                 <button
                   key={member.$id}

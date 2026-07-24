@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
   try {
     const businessId = request.nextUrl.searchParams.get("businessId") ?? "";
     const userId = request.nextUrl.searchParams.get("userId") ?? "";
+    const listingType = request.nextUrl.searchParams.get("listingType") ?? "";
     const { databases } = services();
     await requireAccess(databases, businessId, userId);
     const result = await databases.listDocuments(databaseId, collectionId, [
@@ -81,7 +82,13 @@ export async function GET(request: NextRequest) {
       Query.orderDesc("createdAt"),
       Query.limit(100),
     ]);
-    return NextResponse.json({ documents: result.documents });
+    const documents = listingType
+      ? result.documents.filter(
+          (document) =>
+            Boolean(document.isService) === (listingType === "service"),
+        )
+      : result.documents;
+    return NextResponse.json({ documents });
   } catch (error: any) {
     const forbidden = error?.message?.includes("access");
     return NextResponse.json(
@@ -97,9 +104,13 @@ export async function POST(request: NextRequest) {
     const businessId = String(form.get("businessId") ?? "");
     const userId = String(form.get("userId") ?? "");
     const title = String(form.get("title") ?? "").trim();
+    const listingType =
+      String(form.get("listingType") ?? "product") === "service"
+        ? "service"
+        : "product";
     if (!businessId || !userId || !title)
       return NextResponse.json(
-        { error: "Business, creator, and product title are required." },
+        { error: `Business, creator, and ${listingType} title are required.` },
         { status: 400 },
       );
 
@@ -148,7 +159,9 @@ export async function POST(request: NextRequest) {
         brand: String(form.get("brand") ?? business.name ?? "").trim(),
         price: Number(form.get("price") ?? 0),
         minOrderQty: String(form.get("minOrderQty") ?? "").trim(),
-        unit: String(form.get("unit") ?? "Piece").trim(),
+        unit: String(
+          form.get("unit") ?? (listingType === "service" ? "Visit" : "Piece"),
+        ).trim(),
         location: String(form.get("location") ?? business.city ?? "").trim(),
         tags: String(form.get("tags") ?? "")
           .split(",")
@@ -158,7 +171,7 @@ export async function POST(request: NextRequest) {
         mediaId,
         mediaUrl,
         mediaType: mediaId ? "image" : "",
-        isService: false,
+        isService: listingType === "service",
         isFeatured: false,
         views: 0,
         likes: 0,

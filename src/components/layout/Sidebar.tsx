@@ -109,6 +109,12 @@ const navigation = [
         permission: "vendors.view",
       },
       {
+        label: "Service availability",
+        href: "/service-listings",
+        icon: ShieldCheck,
+        permission: "services.view",
+      },
+      {
         label: "Projects",
         href: "/projects",
         icon: ClipboardList,

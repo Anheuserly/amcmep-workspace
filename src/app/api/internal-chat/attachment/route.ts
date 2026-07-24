@@ -20,10 +20,12 @@ const sessionsTable =
   process.env.NEXT_PUBLIC_INTERNAL_CHAT_SESSIONS_ID ?? "internal_chat_sessions";
 const messagesTable =
   process.env.NEXT_PUBLIC_INTERNAL_CHAT_MESSAGES_ID ?? "internal_chat_messages";
+const notificationsTable =
+  process.env.NEXT_PUBLIC_NOTIFICATION_INBOX_ID ?? "notification_inbox";
 const bucketId =
   process.env.NEXT_PUBLIC_INTERNAL_CHAT_FILES_BUCKET_ID ??
   "internal_chat_files";
-const allowed = new Set([
+const allowedExtensions = [
   "jpg",
   "jpeg",
   "png",
@@ -37,7 +39,22 @@ const allowed = new Set([
   "csv",
   "txt",
   "zip",
-]);
+  "ppt",
+  "pptx",
+  "rtf",
+  "json",
+  "xml",
+  "heic",
+  "heif",
+  "mp4",
+  "mov",
+  "m4a",
+  "aac",
+  "mp3",
+  "wav",
+  "ogg",
+] as const;
+const allowed = new Set<string>(allowedExtensions);
 
 function services() {
   const key = process.env.APPWRITE_API_KEY;
@@ -52,9 +69,11 @@ function value(row: any, key: string) {
   return String(row?.[key] ?? "").trim();
 }
 async function ensureBucket(storage: Storage) {
+  let bucket;
   try {
-    await storage.getBucket(bucketId);
-  } catch {
+    bucket = await storage.getBucket(bucketId);
+  } catch (error: any) {
+    if (error?.code !== 404) throw error;
     await storage.createBucket(
       bucketId,
       "Internal communication files",
@@ -62,24 +81,26 @@ async function ensureBucket(storage: Storage) {
       false,
       true,
       20 * 1024 * 1024,
-      [
-        "jpg",
-        "jpeg",
-        "png",
-        "gif",
-        "webp",
-        "pdf",
-        "doc",
-        "docx",
-        "xls",
-        "xlsx",
-        "csv",
-        "txt",
-        "zip",
-      ],
+      [...allowedExtensions],
       Compression.None,
       true,
       true,
+    );
+    return;
+  }
+  const current = new Set(bucket.allowedFileExtensions ?? []);
+  if (allowedExtensions.some((extension) => !current.has(extension))) {
+    await storage.updateBucket(
+      bucketId,
+      bucket.name,
+      bucket.permissions,
+      bucket.fileSecurity,
+      bucket.enabled,
+      bucket.maximumFileSize,
+      [...allowedExtensions],
+      bucket.compression,
+      bucket.encryption,
+      bucket.antivirus,
     );
   }
 }
@@ -175,7 +196,12 @@ export async function POST(request: NextRequest) {
       InputFile.fromBuffer(Buffer.from(await file.arrayBuffer()), file.name),
     );
     const now = new Date().toISOString();
-    const isImage = file.type.startsWith("image/");
+    const isImage =
+      file.type.startsWith("image/") ||
+      new Set(["jpg", "jpeg", "png", "gif", "webp"]).has(extension);
+    const isAudio =
+      file.type.startsWith("audio/") ||
+      new Set(["m4a", "aac", "mp3", "wav", "ogg"]).has(extension);
     let message;
     try {
       message = await databases.createDocument(
@@ -188,7 +214,7 @@ export async function POST(request: NextRequest) {
           senderId: userId,
           senderName: value(actor, "memberName") || "Member",
           messageText: file.name,
-          messageType: isImage ? "image" : "file",
+          messageType: isImage ? "image" : isAudio ? "audio" : "file",
           fileId: uploaded.$id,
           fileName: file.name,
           fileMime: file.type || "application/octet-stream",
@@ -202,10 +228,43 @@ export async function POST(request: NextRequest) {
       throw error;
     }
     await databases.updateDocument(databaseId, sessionsTable, sessionId, {
-      lastMessage: isImage ? "Shared an image" : `Shared ${file.name}`,
+      lastMessage: isImage
+        ? "Shared an image"
+        : isAudio
+          ? "Voice message"
+          : `Shared ${file.name}`,
       lastMessageAt: now,
       updatedAt: now,
     });
+    const recipients = Array.isArray(session.participantIds)
+      ? session.participantIds
+          .map(String)
+          .filter(
+            (participantId: string) =>
+              participantId && participantId !== userId,
+          )
+      : [];
+    await Promise.allSettled(
+      recipients.map((recipientUserId: string) =>
+        databases.createDocument(databaseId, notificationsTable, ID.unique(), {
+          recipientUserId,
+          businessId: value(session, "businessId"),
+          workspace: "internal",
+          eventType: "internal_chat_message",
+          entityType: "internal_chat_session",
+          entityId: sessionId,
+          title: value(actor, "memberName") || "New business attachment",
+          body: isImage
+            ? "Shared an image"
+            : isAudio
+              ? "Voice message"
+              : `Shared ${file.name}`,
+          deepLink: `amcmepone://communication/${value(session, "businessId")}?session=${sessionId}`,
+          priority: "high",
+          createdAt: now,
+        }),
+      ),
+    );
     return NextResponse.json({ message }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(
