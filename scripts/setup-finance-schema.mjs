@@ -85,6 +85,8 @@ const schemas = {
     ["s", "ifsc", 20, false],
     ["s", "branch", 160, false],
     ["s", "upiId", 120, false],
+    ["s", "payoutStatus", 40, false],
+    ["d", "payoutUpdatedAt", false],
     ["s", "defaultTerms", 10000, false],
     ["s", "logoFileId", 80, false],
     ["s", "signatureFileId", 80, false],

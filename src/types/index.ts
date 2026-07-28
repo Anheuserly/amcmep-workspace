@@ -78,7 +78,7 @@ export interface AMCRecord {
   startDate: string;
   endDate: string;
   cost: number;
-  paymentStatus: "pending" | "paid" | "partial";
+  paymentStatus: "pending" | "submitted" | "paid" | "partial";
   visitCount: number;
   totalVisits: number;
   nextVisitDate?: string;

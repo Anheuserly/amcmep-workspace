@@ -9,6 +9,40 @@ const endpoint =
   process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ??
   "https://fra.cloud.appwrite.io/v1";
 
+const profileFields = [
+  "legalName",
+  "tradeName",
+  "gstin",
+  "pan",
+  "address",
+  "city",
+  "state",
+  "stateCode",
+  "pincode",
+  "email",
+  "phone",
+  "bankName",
+  "accountName",
+  "accountNumber",
+  "ifsc",
+  "branch",
+  "upiId",
+  "defaultTerms",
+  "logoFileId",
+  "signatureFileId",
+  "authorizedSignatory",
+] as const;
+
+function profilePayload(source: unknown) {
+  const input =
+    source && typeof source === "object"
+      ? (source as Record<string, unknown>)
+      : {};
+  return Object.fromEntries(
+    profileFields.map((key) => [key, String(input[key] ?? "").trim()]),
+  );
+}
+
 function database() {
   const key = process.env.APPWRITE_API_KEY;
   if (!key) throw new Error("APPWRITE_API_KEY is not configured.");
@@ -105,8 +139,14 @@ export async function POST(request: NextRequest) {
     const databases = database();
     await requireAccess(databases, businessId, userId);
     const now = new Date().toISOString();
-    const data = { ...(body.data ?? {}), businessId, updatedAt: now };
     if (kind === "profile") {
+      const data = {
+        ...profilePayload(body.data),
+        businessId,
+        updatedAt: now,
+        payoutUpdatedAt: now,
+        payoutStatus: "pending_verification",
+      };
       const existing = await databases.listDocuments(
         databaseId,
         "business_billing_profiles",
@@ -127,6 +167,7 @@ export async function POST(request: NextRequest) {
           );
       return NextResponse.json({ document });
     }
+    const data = { ...(body.data ?? {}), businessId, updatedAt: now };
     const legalName = String(data.legalName ?? "").trim();
     if (!legalName)
       return NextResponse.json(

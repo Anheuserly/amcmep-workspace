@@ -331,11 +331,30 @@ export async function POST(request: NextRequest) {
       lastMessageAt: now,
       updatedAt: now,
     });
-    const recipients = Array.isArray(chatSession.participantIds)
+    let recipients = Array.isArray(chatSession.participantIds)
       ? chatSession.participantIds
           .map(String)
           .filter((participantId: string) => participantId && participantId !== userId)
       : [];
+    if (value(chatSession, "conversationType") === "group") {
+      const activeTeam = await databases.listDocuments(
+        databaseId,
+        "business_memberships",
+        [
+          Query.equal("businessId", businessId),
+          Query.equal("status", "active"),
+          Query.limit(100),
+        ],
+      );
+      recipients = [
+        ...new Set(
+          activeTeam.documents
+            .filter((row) => value(row, "role") !== "partner")
+            .map((row) => value(row, "userId"))
+            .filter((id) => id && id !== userId),
+        ),
+      ];
+    }
     const mentionedUserIds = Array.isArray(body.mentionedUserIds)
       ? body.mentionedUserIds.map(String)
       : [];
@@ -345,7 +364,9 @@ export async function POST(request: NextRequest) {
           recipientUserId,
           businessId,
           workspace: "internal",
-          eventType: "internal_chat_message",
+          eventType: mentionedUserIds.includes(recipientUserId)
+            ? "internal_chat_mention"
+            : "internal_chat_message",
           entityType: "internal_chat_session",
           entityId: sessionId,
           title: mentionedUserIds.includes(recipientUserId)

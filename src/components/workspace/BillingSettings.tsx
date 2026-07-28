@@ -109,7 +109,7 @@ export function BillingSettings({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       setForm(billingValues(result.document, business));
-      toast.success("Billing defaults saved.");
+      toast.success("Billing and payout details saved.");
     } catch (error: any) {
       toast.error(error?.message || "Billing defaults could not be saved.");
     } finally {
@@ -129,11 +129,12 @@ export function BillingSettings({
           {business?.name}
         </p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950">
-          Billing profile
+          Billing and payout profile
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          Saved GST, banking, and authorization details used in every new
-          commercial document.
+          Save reusable GST and authorization details. Your payout account is
+          private and is used only when AMC MEP settles approved earnings to
+          your business.
         </p>
       </header>
       <Panel title="Registered business" icon={Building2}>
@@ -155,7 +156,11 @@ export function BillingSettings({
           ]}
         />
       </Panel>
-      <Panel title="Payment and authorization" icon={Building2}>
+      <Panel title="Payout account and authorization" icon={Building2}>
+        <p className="sm:col-span-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-900">
+          Customers pay AMC MEP&apos;s platform account. They will never be
+          shown the bank or UPI details saved here.
+        </p>
         <Fields
           form={form}
           set={set}

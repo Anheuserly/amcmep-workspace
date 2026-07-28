@@ -93,12 +93,12 @@ async function ensureBucket(storage: Storage) {
     await storage.updateBucket(
       bucketId,
       bucket.name,
-      bucket.permissions,
+      bucket.$permissions,
       bucket.fileSecurity,
       bucket.enabled,
       bucket.maximumFileSize,
       [...allowedExtensions],
-      bucket.compression,
+      bucket.compression as Compression,
       bucket.encryption,
       bucket.antivirus,
     );
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
           recipientUserId,
           businessId: value(session, "businessId"),
           workspace: "internal",
-          eventType: "internal_chat_message",
+          eventType: "internal_chat_attachment",
           entityType: "internal_chat_session",
           entityId: sessionId,
           title: value(actor, "memberName") || "New business attachment",
