@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Client, Databases, ID, Query } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
+import { DataHubServerDatabase } from "@/lib/data-hub/server-database";
 
 const databaseId =
   process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ?? "680b2cfb002805548743";
@@ -89,15 +90,9 @@ const rolePermissions: Record<string, string[]> = {
   ],
 };
 
-function db() {
-  const key = process.env.APPWRITE_API_KEY;
-  if (!key) throw new Error("APPWRITE_API_KEY is not configured.");
-  return new Databases(
-    new Client().setEndpoint(endpoint).setProject(projectId).setKey(key),
-  );
-}
+function db() { return new DataHubServerDatabase(); }
 async function manager(
-  databases: Databases,
+  databases: DataHubServerDatabase,
   businessId: string,
   userId: string,
 ) {
@@ -136,7 +131,7 @@ function value(row: any, ...keys: string[]) {
   }
   return "";
 }
-async function findProfile(databases: Databases, raw: string) {
+async function findProfile(databases: DataHubServerDatabase, raw: string) {
   for (const candidate of phoneVariants(raw)) {
     try {
       const found = await databases.listDocuments(databaseId, userDataTable, [Query.equal("phone", candidate), Query.limit(1)]);

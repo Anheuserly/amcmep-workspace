@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Client, Databases, ID, Query } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
+import { DataHubServerDatabase } from "@/lib/data-hub/server-database";
 
 const databaseId =
   process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ?? "680b2cfb002805548743";
@@ -15,18 +16,33 @@ const messagesTable =
 const notificationsTable =
   process.env.NEXT_PUBLIC_NOTIFICATION_INBOX_ID ?? "notification_inbox";
 
-function db() {
-  const key = process.env.APPWRITE_API_KEY;
-  if (!key) throw new Error("APPWRITE_API_KEY is not configured.");
-  return new Databases(
-    new Client().setEndpoint(endpoint).setProject(projectId).setKey(key),
-  );
-}
+function db() { return new DataHubServerDatabase(); }
 function value(row: any, key: string) {
   return String(row?.[key] ?? "").trim();
 }
+
+function meteredJson(
+  operation: string,
+  body: Record<string, unknown>,
+  estimatedRowsRead: number,
+) {
+  console.info(
+    JSON.stringify({
+      metric: "appwrite_rows_read",
+      endpoint: "internal-chat",
+      operation,
+      estimatedRowsRead,
+    }),
+  );
+  const response = NextResponse.json(body);
+  response.headers.set(
+    "Server-Timing",
+    `appwrite-rows;desc="${estimatedRowsRead}"`,
+  );
+  return response;
+}
 async function membership(
-  databases: Databases,
+  databases: DataHubServerDatabase,
   businessId: string,
   userId: string,
 ) {
@@ -44,7 +60,7 @@ async function membership(
   return result.documents[0];
 }
 async function conversationBusinessAccess(
-  databases: Databases,
+  databases: DataHubServerDatabase,
   session: any,
   userId: string,
 ) {
@@ -59,7 +75,7 @@ async function conversationBusinessAccess(
   throw new Error("Business access is not active.");
 }
 async function sessionAccess(
-  databases: Databases,
+  databases: DataHubServerDatabase,
   sessionId: string,
   userId: string,
 ) {
@@ -85,15 +101,32 @@ export async function GET(request: NextRequest) {
     const sessionId = request.nextUrl.searchParams.get("sessionId") ?? "";
     if (sessionId) {
       await sessionAccess(databases, sessionId, userId);
-      const result = await databases.listDocuments(databaseId, messagesTable, [
+      const limit = Math.min(
+        Math.max(Number(request.nextUrl.searchParams.get("limit") ?? 30), 1),
+        50,
+      );
+      const before = request.nextUrl.searchParams.get("before") ?? "";
+      const queries = [
         Query.equal("sessionId", sessionId),
-        Query.orderAsc("createdAt"),
-        Query.limit(200),
+        Query.orderDesc("createdAt"),
+        Query.limit(limit),
+      ];
+      if (before) queries.push(Query.cursorAfter(before));
+      const result = await databases.listDocuments(databaseId, messagesTable, [
+        ...queries,
       ]);
-      return NextResponse.json({ messages: result.documents });
+      return meteredJson(
+        before ? "messages-older" : "messages-latest",
+        {
+          messages: result.documents.reverse(),
+          hasMore: result.documents.length === limit,
+        },
+        result.documents.length + 2,
+      );
     }
     await membership(databases, businessId, userId);
     const merged = new Map<string, any>();
+    let listedRows = 0;
     for (const field of ["businessId", "counterpartyBusinessId"]) {
       try {
         const result = await databases.listDocuments(
@@ -103,9 +136,10 @@ export async function GET(request: NextRequest) {
             Query.equal(field, businessId),
             Query.equal("isActive", true),
             Query.orderDesc("updatedAt"),
-            Query.limit(100),
+            Query.limit(30),
           ],
         );
+        listedRows += result.documents.length;
         result.documents.forEach((row) => merged.set(row.$id, row));
       } catch {}
     }
@@ -118,7 +152,11 @@ export async function GET(request: NextRequest) {
       .sort((a, b) =>
         value(b, "updatedAt").localeCompare(value(a, "updatedAt")),
       );
-    return NextResponse.json({ sessions });
+    return meteredJson(
+      "sessions",
+      { sessions },
+      listedRows + 1,
+    );
   } catch (error: any) {
     return NextResponse.json(
       {

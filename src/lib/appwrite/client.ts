@@ -1,6 +1,7 @@
-import { Account, Client, Databases, Storage, Avatars } from "appwrite";
+import { Account, Client, Storage, Avatars } from "appwrite";
 
 import { appwriteConfig } from "./config";
+import { DataHubDatabaseAdapter } from "@/lib/data-hub/database-adapter";
 
 export function createAppwriteClient() {
   return new Client()
@@ -10,11 +11,12 @@ export function createAppwriteClient() {
 
 export function createAppwriteServices() {
   const client = createAppwriteClient();
+  const account = new Account(client);
 
   return {
     client,
-    account: new Account(client),
-    databases: new Databases(client),
+    account,
+    databases: new DataHubDatabaseAdapter(async () => (await account.createJWT()).jwt),
     storage: new Storage(client),
     avatars: new Avatars(client),
   };

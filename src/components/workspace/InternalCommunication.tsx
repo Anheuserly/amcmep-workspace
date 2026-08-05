@@ -20,6 +20,8 @@ import {
 import toast from "react-hot-toast";
 import type { Business, WorkspaceMembership } from "@/types";
 import { readString } from "@/lib/services/appwriteServices";
+import { appwrite } from "@/lib/appwrite/client";
+import { appwriteConfig } from "@/lib/appwrite/config";
 import { InternalCallDialog } from "./InternalCallDialog";
 
 export function InternalCommunication({
@@ -34,6 +36,8 @@ export function InternalCommunication({
   const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [selected, setSelected] = useState("");
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
@@ -47,6 +51,7 @@ export function InternalCommunication({
   const messageEnd = useRef<HTMLDivElement>(null);
   const handledTarget = useRef("");
   const handledGroup = useRef("");
+  const prependingMessages = useRef(false);
   const identity = profile?.userId || "";
 
   const loadSessions = useCallback(async () => {
@@ -74,45 +79,109 @@ export function InternalCommunication({
       { cache: "no-store" },
     );
     const data = await response.json();
-    if (response.ok) setMessages(data.messages || []);
+    if (response.ok) {
+      setMessages(data.messages || []);
+      setHasOlderMessages(Boolean(data.hasMore));
+    }
   }, [identity, selected]);
+  const loadOlderMessages = useCallback(async () => {
+    const before = messages[0]?.$id;
+    if (!selected || !identity || !before || loadingOlder) return;
+    setLoadingOlder(true);
+    const response = await fetch(
+      `/api/internal-chat?sessionId=${selected}&userId=${identity}&before=${encodeURIComponent(before)}`,
+      { cache: "no-store" },
+    );
+    const data = await response.json();
+    if (response.ok) {
+      prependingMessages.current = true;
+      setMessages((current) => [...(data.messages || []), ...current]);
+      setHasOlderMessages(Boolean(data.hasMore));
+    }
+    setLoadingOlder(false);
+  }, [identity, loadingOlder, messages, selected]);
 
   useEffect(() => {
     void loadSessions();
-    const timer = window.setInterval(loadSessions, 5000);
-    return () => window.clearInterval(timer);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadSessions();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [loadSessions]);
   useEffect(() => {
     setMessages([]);
     void loadMessages();
-    const timer = window.setInterval(loadMessages, 3000);
-    return () => window.clearInterval(timer);
   }, [loadMessages]);
   useEffect(() => {
-    messageEnd.current?.scrollIntoView({ block: "end" });
-  }, [messages, selected]);
-  useEffect(() => {
-    const timer = window.setInterval(async () => {
-      if (!identity || call) return;
-      const response = await fetch(`/api/internal-calls?userId=${identity}`, {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (response.ok && data.incoming) {
-        const belongs = sessions.some(
-          (item) => item.$id === data.incoming.chatSessionId,
-        );
-        if (belongs) {
-          setSelected(data.incoming.chatSessionId);
-          setCall({
-            mode: data.incoming.mode === "video" ? "video" : "voice",
-            incoming: data.incoming,
+    if (!business?.$id || !identity) return;
+    const databaseId = appwriteConfig.databaseId;
+    return appwrite.client.subscribe(
+      [
+        `databases.${databaseId}.tables.internal_chat_sessions.rows`,
+        `databases.${databaseId}.tables.internal_chat_messages.rows`,
+        `databases.${databaseId}.tables.internal_call_sessions.rows`,
+      ],
+      (event: any) => {
+        const payload =
+          event?.payload?.data &&
+          typeof event.payload.data === "object"
+            ? event.payload.data
+            : event?.payload ?? {};
+        const events: string[] = event?.events ?? [];
+        const id = String(payload.$id ?? "");
+        const deleted = events.some((name) => name.endsWith(".delete"));
+        if (
+          events.some((name) => name.includes("internal_chat_sessions")) &&
+          String(payload.businessId ?? "") === business.$id
+        ) {
+          setSessions((current) => {
+            const remaining = current.filter((item) => item.$id !== id);
+            if (deleted) return remaining;
+            const participantIds = Array.isArray(payload.participantIds)
+              ? payload.participantIds.map(String)
+              : [];
+            return participantIds.includes(identity)
+              ? [payload, ...remaining]
+              : remaining;
           });
         }
-      }
-    }, 2500);
-    return () => window.clearInterval(timer);
-  }, [call, identity, sessions]);
+        if (
+          selected &&
+          events.some((name) => name.includes("internal_chat_messages")) &&
+          String(payload.sessionId ?? "") === selected
+        ) {
+          setMessages((current) => {
+            const remaining = current.filter((item) => item.$id !== id);
+            return deleted ? remaining : [...remaining, payload];
+          });
+        }
+        if (
+          !call &&
+          events.some((name) => name.includes("internal_call_sessions")) &&
+          String(payload.calleeId ?? "") === identity &&
+          String(payload.status ?? "") === "ringing"
+        ) {
+          setSelected(String(payload.chatSessionId ?? ""));
+          setCall({
+            mode: payload.mode === "video" ? "video" : "voice",
+            incoming: payload,
+          });
+        }
+      },
+    );
+  }, [business?.$id, call, identity, selected]);
+  useEffect(() => {
+    if (prependingMessages.current) {
+      prependingMessages.current = false;
+      return;
+    }
+    messageEnd.current?.scrollIntoView({ block: "end" });
+  }, [messages, selected]);
 
   const title = (session: any) => {
     if (readString(session, "conversationType") === "group")
@@ -360,6 +429,17 @@ export function InternalCommunication({
                 ) : null}
               </div>
               <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-slate-50/50 p-4">
+                {hasOlderMessages ? (
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => void loadOlderMessages()}
+                      disabled={loadingOlder}
+                      className="rounded-md border bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-50"
+                    >
+                      {loadingOlder ? "Loading..." : "Load earlier messages"}
+                    </button>
+                  </div>
+                ) : null}
                 {messages.map((message) => {
                   const mine = readString(message, "senderId") === identity;
                   const type = readString(message, "messageType");
